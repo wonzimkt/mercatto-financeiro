@@ -1,0 +1,171 @@
+"use client";
+
+import { usePathname, useRouter } from "next/navigation";
+import { createContext, Suspense, useCallback, useContext, useEffect, useState } from "react";
+import { Cabecalho } from "@/components/Cabecalho";
+import { buscarConfiguracoes, buscarLancamentos } from "@/lib/dados";
+import { CONFIG_DEMO, lancamentosDemo, MODO_DEMO } from "@/lib/demo";
+import { CONFIG_PADRAO, type Configuracoes, type Lancamento } from "@/lib/financeiro/tipos";
+import { destinoDaSessao, supabase } from "@/lib/supabase/cliente";
+
+interface DadosPainel {
+  lancamentos: Lancamento[];
+  config: Configuracoes;
+  email: string;
+  atualizadoEm: Date | null;
+  recarregar: () => Promise<void>;
+}
+
+const Contexto = createContext<DadosPainel | null>(null);
+
+export function useDados(): DadosPainel {
+  const ctx = useContext(Contexto);
+  if (!ctx) throw new Error("useDados precisa estar dentro de <Painel>.");
+  return ctx;
+}
+
+type Fase = "verificando" | "carregando" | "pronto" | "erro";
+
+/**
+ * Porteiro do painel. No GitHub Pages não há middleware de servidor, então
+ * a checagem acontece aqui, no navegador: sem sessão → login; sem MFA →
+ * código ou cadastro do autenticador. Isso é só a experiência de uso — a
+ * proteção de verdade é o RLS, que recusa qualquer leitura sem aal2.
+ */
+export function Painel({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+  const caminho = usePathname();
+  const [fase, setFase] = useState<Fase>("verificando");
+  const [erro, setErro] = useState("");
+  const [lancamentos, setLancamentos] = useState<Lancamento[]>([]);
+  const [config, setConfig] = useState<Configuracoes>(CONFIG_PADRAO);
+  const [email, setEmail] = useState("");
+  const [atualizadoEm, setAtualizadoEm] = useState<Date | null>(null);
+
+  const recarregar = useCallback(async () => {
+    if (MODO_DEMO) {
+      setLancamentos(lancamentosDemo());
+      setConfig(CONFIG_DEMO);
+      setAtualizadoEm(new Date());
+      return;
+    }
+    const [ls, cfg] = await Promise.all([buscarLancamentos(), buscarConfiguracoes()]);
+    setLancamentos(ls);
+    setConfig(cfg);
+    setAtualizadoEm(new Date());
+  }, []);
+
+  useEffect(() => {
+    let vivo = true;
+    let cancelar = () => {};
+
+    (async () => {
+      try {
+        if (MODO_DEMO) {
+          setEmail("demonstração (dados fictícios)");
+          await recarregar();
+          setFase("pronto");
+          return;
+        }
+        const sb = supabase();
+        const { data: sub } = sb.auth.onAuthStateChange((evento) => {
+          if (evento === "SIGNED_OUT") router.replace("/login/");
+        });
+        cancelar = () => sub.subscription.unsubscribe();
+
+        const destino = await destinoDaSessao();
+        if (!vivo) return;
+        if (destino) {
+          const volta = destino === "/login/" ? "" : `?volta=${encodeURIComponent(caminho)}`;
+          router.replace(destino + volta);
+          return;
+        }
+        // getUser confere o token no servidor de Auth (não só no navegador).
+        const { data, error } = await sb.auth.getUser();
+        if (error || !data.user) {
+          router.replace("/login/");
+          return;
+        }
+        setEmail(data.user.email ?? "");
+        // O RLS devolveria listas vazias; melhor explicar o motivo.
+        if (data.user.app_metadata?.mercatto_membro !== true) {
+          setErro(
+            `A conta ${data.user.email} ainda não foi autorizada a ver o livro-razão. ` +
+              "Peça a um administrador para liberar o acesso e entre novamente.",
+          );
+          setFase("erro");
+          return;
+        }
+        // Autorizado depois do login: renova o token para o RLS enxergar a marca.
+        const { data: sessao } = await sb.auth.getSession();
+        if (sessao.session?.user.app_metadata?.mercatto_membro !== true) await sb.auth.refreshSession();
+        setFase("carregando");
+        await recarregar();
+        if (vivo) setFase("pronto");
+      } catch (e) {
+        if (!vivo) return;
+        setErro(e instanceof Error ? e.message : String(e));
+        setFase("erro");
+      }
+    })();
+
+    return () => {
+      vivo = false;
+      cancelar();
+    };
+    // Só na montagem: navegar entre abas não refaz a checagem nem a carga.
+  }, []);
+
+  if (fase === "verificando" || fase === "carregando") {
+    return (
+      <div className="carregando" role="status">
+        {fase === "verificando" ? "Conferindo credenciais…" : "Abrindo o livro-razão…"}
+      </div>
+    );
+  }
+
+  if (fase === "erro") {
+    return (
+      <main className="acesso">
+        <div className="acesso__folha">
+          <div className="acesso__marca">Mercatto</div>
+          <h1 className="acesso__titulo">Não foi possível abrir</h1>
+          <p className="aviso aviso--erro">{erro}</p>
+          <p style={{ display: "flex", gap: 12, marginTop: 20 }}>
+            <button className="btn" onClick={() => window.location.reload()}>
+              Tentar de novo
+            </button>
+            <button
+              className="btn btn--fantasma"
+              onClick={async () => {
+                await supabase().auth.signOut().catch(() => {});
+                router.replace("/login/");
+              }}
+            >
+              Sair
+            </button>
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <Contexto.Provider value={{ lancamentos, config, email, atualizadoEm, recarregar }}>
+      <Cabecalho email={email} />
+      <Suspense fallback={<div className="carregando">Carregando…</div>}>{children}</Suspense>
+      <footer className="rodape-pagina">
+        <span>Mercatto Imóveis · Balneário Camboriú &amp; Praia Brava</span>
+        <span>
+          {lancamentos.length} lançamentos
+          {atualizadoEm &&
+            ` · atualizado às ${atualizadoEm.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`}{" "}
+          ·{" "}
+          <button className="link" onClick={() => recarregar().catch((e) => alert(e.message))}>
+            recarregar
+          </button>
+        </span>
+      </footer>
+    </Contexto.Provider>
+  );
+}

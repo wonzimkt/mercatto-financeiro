@@ -1,0 +1,103 @@
+export const TIPOS = ["receita", "despesa"] as const;
+export type Tipo = (typeof TIPOS)[number];
+
+export const COMISSAO = "Comissão de Venda";
+export const RETIRADA = "Retirada de Sócios";
+
+export const CATEGORIAS_RECEITA = [COMISSAO, "Outra Receita"] as const;
+export const CATEGORIAS_DESPESA = [
+  "Custo Fixo",
+  "Imposto",
+  RETIRADA,
+  "Marketing",
+  "Outro",
+] as const;
+
+export type CategoriaReceita = (typeof CATEGORIAS_RECEITA)[number];
+export type CategoriaDespesa = (typeof CATEGORIAS_DESPESA)[number];
+export type Categoria = CategoriaReceita | CategoriaDespesa;
+
+export const CATEGORIAS: Record<Tipo, readonly Categoria[]> = {
+  receita: CATEGORIAS_RECEITA,
+  despesa: CATEGORIAS_DESPESA,
+};
+
+/**
+ * Despesas que entram no custo operacional (ponto de equilíbrio, reserva).
+ * "Retirada de Sócios" fica de fora: é distribuição de lucro, não custo.
+ */
+export const CATEGORIAS_OPERACIONAIS: readonly CategoriaDespesa[] =
+  CATEGORIAS_DESPESA.filter((c) => c !== RETIRADA);
+
+export const ORIGENS = ["Caixa", "Cris"] as const;
+export type Origem = (typeof ORIGENS)[number];
+
+export interface Lancamento {
+  id: string;
+  tipo: Tipo;
+  categoria: Categoria;
+  /** Sempre positivo. Em comissões, o líquido que fica com a empresa. */
+  valor: number;
+  /** AAAA-MM-DD */
+  data: string;
+  descricao: string | null;
+  origem_recurso: Origem;
+  corretor: string | null;
+  cliente: string | null;
+  produto: string | null;
+  cidade: string | null;
+  socio: string | null;
+  comissao_bruta: number | null;
+  split_empresa_percent: number | null;
+  criado_por: string | null;
+  criado_em: string;
+  atualizado_em: string;
+}
+
+export type LancamentoEntrada = Omit<
+  Lancamento,
+  "id" | "criado_por" | "criado_em" | "atualizado_em"
+>;
+
+export interface Configuracoes {
+  split_empresa_percent: number;
+  reserva_meses_alvo: number;
+  custo_fixo_estimado: number;
+  comissao_media_esperada: number;
+  saldo_inicial_caixa: number;
+  saldo_inicial_cris: number;
+  atualizado_em?: string;
+}
+
+export const CONFIG_PADRAO: Configuracoes = {
+  split_empresa_percent: 50,
+  reserva_meses_alvo: 6,
+  custo_fixo_estimado: 0,
+  comissao_media_esperada: 0,
+  saldo_inicial_caixa: 0,
+  saldo_inicial_cris: 0,
+};
+
+/** O PostgREST devolve numeric como número, mas normalizamos por garantia. */
+export function normalizarLancamento(l: Record<string, unknown>): Lancamento {
+  const num = (v: unknown) => (v === null || v === undefined ? null : Number(v));
+  return {
+    ...(l as unknown as Lancamento),
+    valor: Number(l.valor),
+    comissao_bruta: num(l.comissao_bruta),
+    split_empresa_percent: num(l.split_empresa_percent),
+  };
+}
+
+export function normalizarConfiguracoes(c: Record<string, unknown> | null): Configuracoes {
+  if (!c) return CONFIG_PADRAO;
+  return {
+    split_empresa_percent: Number(c.split_empresa_percent ?? 50),
+    reserva_meses_alvo: Number(c.reserva_meses_alvo ?? 6),
+    custo_fixo_estimado: Number(c.custo_fixo_estimado ?? 0),
+    comissao_media_esperada: Number(c.comissao_media_esperada ?? 0),
+    saldo_inicial_caixa: Number(c.saldo_inicial_caixa ?? 0),
+    saldo_inicial_cris: Number(c.saldo_inicial_cris ?? 0),
+    atualizado_em: c.atualizado_em as string | undefined,
+  };
+}
