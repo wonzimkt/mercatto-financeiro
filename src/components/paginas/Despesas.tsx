@@ -2,9 +2,9 @@
 
 import { FiltroPeriodo, usePeriodo } from "@/components/Filtros";
 import { GraficoLinha } from "@/components/graficos/Graficos";
-import { CabecalhoPagina, Delta, Figura, Figuras, Secao } from "@/components/ui";
+import { Barras, CabecalhoPagina, Delta, Figura, Figuras, Secao } from "@/components/ui";
 import { useDados } from "@/components/Painel";
-import { despesasPorCategoriaMes, maioresDespesas, noPeriodo, variacao } from "@/lib/financeiro/calculos";
+import { despesasPorCategoriaMes, despesasPorItem, maioresDespesas, noPeriodo, variacao } from "@/lib/financeiro/calculos";
 import { mesesDecorridos, mesesDeEvolucao, nomeMes, somarMeses } from "@/lib/financeiro/datas";
 import { dataBR, moeda, moedaCompacta } from "@/lib/financeiro/formato";
 import { CATEGORIAS_DESPESA, RETIRADA } from "@/lib/financeiro/tipos";
@@ -23,6 +23,8 @@ export function Despesas() {
   const total = doPeriodo.reduce((s, l) => s + l.valor, 0);
   const retiradas = doPeriodo.filter((l) => l.categoria === RETIRADA).reduce((s, l) => s + l.valor, 0);
   const maiores = maioresDespesas(ls, periodo.inicio, periodo.fim, 12);
+  const porItem = despesasPorItem(ls, periodo.inicio, periodo.fim);
+  const pagoCris = doPeriodo.filter((l) => l.origem_recurso === "Cris").reduce((s, l) => s + l.valor, 0);
   const totalCategoria = (c: string) => doPeriodo.filter((l) => l.categoria === c).reduce((s, l) => s + l.valor, 0);
 
   return (
@@ -31,7 +33,7 @@ export function Despesas() {
         <FiltroPeriodo />
       </CabecalhoPagina>
       <Figuras>
-        <Figura rotulo="Despesa total" valor={total} />
+        <Figura rotulo="Despesa total" valor={total} rodape={<span>pago pela Cris: {moeda(pagoCris)}</span>} />
         <Figura rotulo="Custo operacional" valor={total - retiradas} rodape={<span>sem retiradas de sócios</span>} />
         <Figura rotulo="Retiradas de sócios" valor={retiradas} />
         <Figura
@@ -114,6 +116,22 @@ export function Despesas() {
         </div>
       </Secao>
 
+      <Secao titulo="Por item de custo" nota="sem retiradas de sócios">
+        <Barras
+          itens={porItem.map((g) => ({
+            nome: g.nome,
+            valor: g.total,
+            detalhe: `${g.categorias.join(", ")} · ${g.qtd} ${g.qtd === 1 ? "lançamento" : "lançamentos"}`,
+          }))}
+          vazio="Nenhuma despesa no período."
+        />
+        {porItem.some((g) => g.nome === "Não informado") && (
+          <p className="campo__ajuda" style={{ margin: "10px 0 0" }}>
+            &ldquo;Não informado&rdquo; são despesas lançadas sem o campo &ldquo;Qual custo&rdquo;.
+          </p>
+        )}
+      </Secao>
+
       <Secao titulo="Maiores despesas do período">
         {maiores.length ? (
           <div className="tabela-wrap">
@@ -121,9 +139,9 @@ export function Despesas() {
               <thead>
                 <tr>
                   <th>Data</th>
-                  <th>Descrição</th>
+                  <th>Custo</th>
                   <th>Categoria</th>
-                  <th>Origem</th>
+                  <th>Quem pagou</th>
                   <th className="num">Valor</th>
                   <th className="num">% do período</th>
                 </tr>
@@ -133,8 +151,8 @@ export function Despesas() {
                   <tr key={l.id}>
                     <td className="num">{dataBR(l.data)}</td>
                     <td>
-                      {l.descricao || <span className="muted">—</span>}
-                      {l.socio && <span className="secundario">Sócio: {l.socio}</span>}
+                      {l.item_custo || (l.socio ? `Retirada · ${l.socio}` : <span className="muted">Não informado</span>)}
+                      {l.descricao && <span className="secundario">{l.descricao}</span>}
                     </td>
                     <td>{l.categoria}</td>
                     <td>{l.origem_recurso}</td>

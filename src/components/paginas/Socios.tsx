@@ -24,8 +24,8 @@ export function Socios() {
     () =>
       serieMensal(ls, config, mesesDoHistorico(ls, chaveMes(periodo.fim), 12)).map((p) => ({
         mes: p.mes,
-        Caixa: p.acumuladoOrigem.Caixa,
-        Cris: p.acumuladoOrigem.Cris,
+        Caixa: p.caixa,
+        Cris: p.bancadoCris,
       })),
     [ls, config, periodo.fim],
   );
@@ -65,10 +65,10 @@ export function Socios() {
         </div>
       </Secao>
 
-      <Secao titulo="Saldo por origem ao longo do tempo" nota="acumulado ao fim de cada mês, com saldos iniciais">
+      <Secao titulo="Caixa e valores bancados pela Cris" nota="ao fim de cada mês">
         <Figuras>
-          <Figura rotulo="Caixa" valor={ultimo?.Caixa ?? 0} tom="auto" />
-          <Figura rotulo="Cris" valor={ultimo?.Cris ?? 0} tom="auto" />
+          <Figura rotulo="Caixa da empresa" valor={ultimo?.Caixa ?? 0} tom="auto" />
+          <Figura rotulo="Total bancado pela Cris" valor={ultimo?.Cris ?? 0} rodape={<span>despesas pagas pela Cris, que não saíram do caixa</span>} />
         </Figuras>
         <div style={{ marginTop: 16 }}>
           <GraficoOrigens dados={origens} />

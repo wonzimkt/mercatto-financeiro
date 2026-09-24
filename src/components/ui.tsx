@@ -3,7 +3,7 @@
  * variação, valor em reais, barras horizontais e medidor.
  */
 import type { ReactNode } from "react";
-import { moeda, moedaComSinal, num, percentual, variacaoTexto } from "@/lib/financeiro/formato";
+import { moeda, moedaComSinal, moedaCompacta, num, percentual, variacaoTexto } from "@/lib/financeiro/formato";
 
 export function Secao({
   titulo,
@@ -94,16 +94,30 @@ export function Figura({
 }: {
   rotulo: string;
   valor: number | null;
-  formato?: "moeda" | "numero" | "pct";
+  /** "compacto": R$ 36,9 mi (para VGV e valores grandes); o valor exato aparece ao passar o mouse. */
+  formato?: "moeda" | "compacto" | "numero" | "pct";
   tom?: Tom;
   rodape?: ReactNode;
 }) {
   const texto =
-    valor === null ? "—" : formato === "moeda" ? moeda(valor) : formato === "pct" ? percentual(valor) : num(valor);
+    valor === null
+      ? "—"
+      : formato === "moeda"
+        ? moeda(valor)
+        : formato === "compacto"
+          ? moedaCompacta(valor)
+          : formato === "pct"
+            ? percentual(valor)
+            : num(valor);
   return (
     <div className="figura">
       <span className="figura__rotulo">{rotulo}</span>
-      <span className={`figura__valor ${valor === null ? "" : classeTom(valor, tom)}`}>{texto}</span>
+      <span
+        className={`figura__valor ${valor === null ? "" : classeTom(valor, tom)}`}
+        title={formato === "compacto" && valor !== null ? moeda(valor) : undefined}
+      >
+        {texto}
+      </span>
       {rodape && <div className="figura__rodape">{rodape}</div>}
     </div>
   );

@@ -36,19 +36,29 @@ export interface Lancamento {
   id: string;
   tipo: Tipo;
   categoria: Categoria;
-  /** Sempre positivo. Em comissões, o líquido que fica com a empresa. */
+  /** Sempre positivo. Em comissões, o líquido da Mercatto (split − imposto NF). */
   valor: number;
   /** AAAA-MM-DD */
   data: string;
   descricao: string | null;
-  origem_recurso: Origem;
+  /** Só em despesas: quem pagou (Caixa da empresa ou Cris). Receitas entram no Caixa. */
+  origem_recurso: Origem | null;
+  /** Só em despesas: qual custo é (ex.: aluguel), além da categoria. */
+  item_custo: string | null;
   corretor: string | null;
   cliente: string | null;
   produto: string | null;
   cidade: string | null;
   socio: string | null;
+  /** Comissões: VGV do imóvel e memória do cálculo. */
+  vgv: number | null;
+  comissao_percent: number | null;
+  /** Comissão total (VGV × comissao_percent). */
   comissao_bruta: number | null;
+  /** Parte da comissão total que é da Mercatto (%). */
   split_empresa_percent: number | null;
+  imposto_nf_percent: number | null;
+  imposto_nf: number | null;
   criado_por: string | null;
   criado_em: string;
   atualizado_em: string;
@@ -60,23 +70,32 @@ export type LancamentoEntrada = Omit<
 >;
 
 export interface Configuracoes {
+  /** Comissão total sobre o VGV (%). */
+  comissao_percent: number;
+  /** Parte da comissão total que é da Mercatto (%). */
   split_empresa_percent: number;
-  reserva_meses_alvo: number;
+  /** Imposto sobre a NF, aplicado ao split da Mercatto (%). */
+  imposto_nf_percent: number;
   custo_fixo_estimado: number;
   comissao_media_esperada: number;
   saldo_inicial_caixa: number;
-  saldo_inicial_cris: number;
   atualizado_em?: string;
 }
 
 export const CONFIG_PADRAO: Configuracoes = {
+  comissao_percent: 5,
   split_empresa_percent: 50,
-  reserva_meses_alvo: 6,
+  imposto_nf_percent: 6,
   custo_fixo_estimado: 0,
   comissao_media_esperada: 0,
   saldo_inicial_caixa: 0,
-  saldo_inicial_cris: 0,
 };
+
+/** Meta de VGV vendido por ano. */
+export interface MetaAnual {
+  ano: number;
+  meta_vgv: number;
+}
 
 /** O PostgREST devolve numeric como número, mas normalizamos por garantia. */
 export function normalizarLancamento(l: Record<string, unknown>): Lancamento {
@@ -84,20 +103,26 @@ export function normalizarLancamento(l: Record<string, unknown>): Lancamento {
   return {
     ...(l as unknown as Lancamento),
     valor: Number(l.valor),
+    vgv: num(l.vgv),
+    comissao_percent: num(l.comissao_percent),
     comissao_bruta: num(l.comissao_bruta),
     split_empresa_percent: num(l.split_empresa_percent),
+    imposto_nf_percent: num(l.imposto_nf_percent),
+    imposto_nf: num(l.imposto_nf),
+    origem_recurso: (l.origem_recurso as Origem | null) ?? null,
+    item_custo: (l.item_custo as string | null) ?? null,
   };
 }
 
 export function normalizarConfiguracoes(c: Record<string, unknown> | null): Configuracoes {
   if (!c) return CONFIG_PADRAO;
   return {
+    comissao_percent: Number(c.comissao_percent ?? 5),
     split_empresa_percent: Number(c.split_empresa_percent ?? 50),
-    reserva_meses_alvo: Number(c.reserva_meses_alvo ?? 6),
+    imposto_nf_percent: Number(c.imposto_nf_percent ?? 6),
     custo_fixo_estimado: Number(c.custo_fixo_estimado ?? 0),
     comissao_media_esperada: Number(c.comissao_media_esperada ?? 0),
     saldo_inicial_caixa: Number(c.saldo_inicial_caixa ?? 0),
-    saldo_inicial_cris: Number(c.saldo_inicial_cris ?? 0),
     atualizado_em: c.atualizado_em as string | undefined,
   };
 }

@@ -41,6 +41,7 @@ Limitações de hospedar no GitHub Pages:
 supabase/
   migrations/…_schema_inicial.sql tabelas, triggers, permissões e RLS
   migrations/…_somente_membros.sql RLS passa a exigir também membro autorizado
+  migrations/…_vgv_metas_itens.sql VGV/imposto NF, origem só em despesas, item de custo, metas anuais
   functions/convidar-usuario/     Edge Function de convite (única que usa a service role)
   templates/                      e-mails de convite e de redefinição de senha
 src/
@@ -70,7 +71,7 @@ src/
 ### Opção A — SQL Editor (mais simples)
 
 1. Supabase → **SQL Editor** → **New query**.
-2. Cole o conteúdo de `supabase/migrations/20260923120000_schema_inicial.sql` e clique em **Run**. Repita com `20260923130000_somente_membros.sql`.
+2. Cole o conteúdo de cada arquivo de `supabase/migrations/`, em ordem de data, e clique em **Run** para cada um.
 3. Confira em **Table Editor** que existem `lancamentos` e `configuracoes` (com 1 linha), ambas com o selo **RLS enabled**.
 
 ### Opção B — Supabase CLI
@@ -186,18 +187,27 @@ Serve para ver o visual e testar as telas sem tocar no banco. O build publicado 
 
 Todas em `src/lib/financeiro/calculos.ts`, cobertas por testes.
 
-- **Valor** é sempre positivo; o tipo (receita/despesa) dá o sinal. Em **Comissão de Venda**, `valor` é o **líquido da empresa**.
-  A calculadora guarda também `comissao_bruta` e `split_empresa_percent`, o que permite mostrar o repasse aos corretores.
-- **Caixa acumulado** = saldo inicial Caixa + saldo inicial Cris + todas as receitas − todas as despesas até o fim do mês.
-  O saldo por origem segue a mesma conta, separada por `origem_recurso`.
+- **Valor** é sempre positivo; o tipo (receita/despesa) dá o sinal.
+- **Comissão de Venda** é lançada pelo **VGV**. A calculadora faz: comissão total (5% do VGV) → split Mercatto
+  (50% da comissão = 2,5% do VGV) e split corretor (o restante) → imposto sobre a NF (6%, só sobre o split da
+  Mercatto) → **líquido Mercatto**, que é o `valor` da receita. Os percentuais padrão ficam em Configurações e podem
+  ser ajustados venda a venda; tudo fica gravado (`vgv`, `comissao_bruta`, `imposto_nf`…).
+- **Origem (Caixa/Cris) só existe em despesas.** Toda receita entra no caixa da empresa.
+- **Caixa** = saldo inicial + receitas − despesas pagas pelo Caixa. Despesas pagas pela Cris **não saem do caixa**
+  e são somadas à parte ("total bancado pela Cris"). "Caixa agora" considera só lançamentos com data até hoje.
+- **Resultado do mês** = receitas − todas as despesas (inclusive retiradas e as pagas pela Cris).
+- **Qual custo**: despesas podem ter um item de custo (ex.: aluguel, contador) além da categoria; a aba Despesas
+  agrupa por ele. Maiúsculas e espaços não diferenciam itens.
 - **Custo operacional** = todas as despesas **exceto Retirada de Sócios** (retirada é distribuição de lucro).
 - **Ponto de equilíbrio** = custo operacional do mês ÷ comissão líquida média por venda (arredondado para cima).
   - Mês encerrado: custo lançado. Mês em curso: o maior entre o já lançado e a média dos 3 meses anteriores.
   - Comissão média: últimos 12 meses.
-  - Sem histórico suficiente (menos de 2 meses de custos ou menos de 3 vendas), usa `custo_fixo_estimado` e `comissao_media_esperada` das configurações. A tela sempre informa de onde veio cada número.
-- **Reserva de caixa**: meta = custo operacional médio (6 meses anteriores, ou estimado) × `reserva_meses_alvo`.
-- **Projeção (3 meses)**: média móvel simples de entradas e saídas dos últimos 3 meses encerrados, somada ao caixa atual.
-  Retiradas entram (o dinheiro sai do caixa). Sem histórico, projeta só o custo estimado, sem receita (cenário prudente).
+  - Sem histórico suficiente (menos de 2 meses de custos ou menos de 3 vendas), usa `custo_fixo_estimado` e
+    `comissao_media_esperada` das configurações. A tela sempre informa de onde veio cada número.
+- **Meta de vendas**: meta anual de **VGV vendido** (tabela `metas_anuais`), editada na aba Metas. Alcançado = soma
+  do VGV das vendas do ano; o ritmo compara com a meta proporcional aos dias já passados do ano.
+- **Projeção (3 meses)**: média móvel simples das entradas e saídas do caixa dos últimos 3 meses encerrados,
+  somada ao caixa atual. Sem histórico, projeta só o custo estimado, sem receita (cenário prudente).
 - **Exportação**: CSV com `;`, vírgula decimal e BOM UTF-8, para abrir direto no Excel em português. Gerado no navegador.
 
 ## Design

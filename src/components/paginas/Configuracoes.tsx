@@ -9,44 +9,43 @@ import type { Configuracoes as Cfg } from "@/lib/financeiro/tipos";
 
 type Campo = keyof Omit<Cfg, "atualizado_em">;
 
-const CAMPOS: { id: Campo; rotulo: string; ajuda: string; tipo: "moeda" | "pct" | "inteiro"; negativo?: boolean }[] = [
+const CAMPOS: { id: Campo; rotulo: string; ajuda: string; tipo: "moeda" | "pct"; negativo?: boolean }[] = [
   {
-    id: "split_empresa_percent",
-    rotulo: "Split da empresa (%)",
-    ajuda: "Quanto da comissão fica com a Mercatto. Preenche a calculadora de novas vendas.",
+    id: "comissao_percent",
+    rotulo: "Comissão total (% do VGV)",
+    ajuda: "Padrão da calculadora de comissão. Ex.: 5.",
     tipo: "pct",
   },
   {
-    id: "reserva_meses_alvo",
-    rotulo: "Meses de reserva desejados",
-    ajuda: "Meta de caixa = custo operacional médio × este número.",
-    tipo: "inteiro",
+    id: "split_empresa_percent",
+    rotulo: "Parte da Mercatto (% da comissão)",
+    ajuda: "Ex.: 50 = split Mercatto de 2,5% do VGV quando a comissão é 5%. O restante vai para o corretor.",
+    tipo: "pct",
   },
   {
-    id: "custo_fixo_estimado",
-    rotulo: "Custo fixo estimado por mês (R$)",
-    ajuda: "Usado no ponto de equilíbrio e na reserva enquanto não houver 2 meses de histórico.",
-    tipo: "moeda",
-  },
-  {
-    id: "comissao_media_esperada",
-    rotulo: "Comissão média esperada por venda (R$)",
-    ajuda: "Líquido da empresa por venda. Usado até existirem 3 vendas nos últimos 12 meses.",
-    tipo: "moeda",
+    id: "imposto_nf_percent",
+    rotulo: "Imposto sobre a NF (% do split Mercatto)",
+    ajuda: "Descontado só do split da Mercatto. Ex.: 6.",
+    tipo: "pct",
   },
   {
     id: "saldo_inicial_caixa",
-    rotulo: "Saldo inicial — Caixa (R$)",
+    rotulo: "Saldo inicial do caixa (R$)",
     ajuda: "Quanto havia no caixa da empresa antes do primeiro lançamento.",
     tipo: "moeda",
     negativo: true,
   },
   {
-    id: "saldo_inicial_cris",
-    rotulo: "Saldo inicial — Cris (R$)",
-    ajuda: "Saldo de recursos da empresa na conta da Cris antes do primeiro lançamento.",
+    id: "custo_fixo_estimado",
+    rotulo: "Custo fixo estimado por mês (R$)",
+    ajuda: "Usado no ponto de equilíbrio e na projeção enquanto não houver 2 meses de histórico.",
     tipo: "moeda",
-    negativo: true,
+  },
+  {
+    id: "comissao_media_esperada",
+    rotulo: "Comissão líquida esperada por venda (R$)",
+    ajuda: "O que fica com a Mercatto por venda. Usado até existirem 3 vendas nos últimos 12 meses.",
+    tipo: "moeda",
   },
 ];
 
@@ -68,11 +67,10 @@ export function Configuracoes() {
     const e: Partial<Record<Campo, string>> = {};
     const saida = {} as Record<Campo, number>;
     for (const c of CAMPOS) {
-      const v = c.tipo === "inteiro" ? Number(valores[c.id]) : lerValor(valores[c.id]);
+      const v = lerValor(valores[c.id]);
       if (!Number.isFinite(v)) e[c.id] = "Número inválido.";
       else if (!c.negativo && v < 0) e[c.id] = "Não pode ser negativo.";
       else if (c.tipo === "pct" && v > 100) e[c.id] = "Máximo 100%.";
-      else if (c.tipo === "inteiro" && (!Number.isInteger(v) || v > 60)) e[c.id] = "Número inteiro de 0 a 60.";
       saida[c.id] = v;
     }
     setErros(e);
@@ -107,7 +105,7 @@ export function Configuracoes() {
               <input
                 id={c.id}
                 className="num"
-                inputMode={c.tipo === "inteiro" ? "numeric" : "decimal"}
+                inputMode="decimal"
                 value={valores[c.id]}
                 onChange={(ev) => setValores((v) => ({ ...v, [c.id]: ev.target.value }))}
                 aria-invalid={erros[c.id] ? true : undefined}

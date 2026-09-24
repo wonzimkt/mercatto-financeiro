@@ -130,12 +130,12 @@ export function GraficoFluxoCaixa({
 }) {
   const serie = dados.map((d) => ({ ...d, saida: -d.despesa }));
   return (
-    <figure className="grafico" style={{ margin: 0 }}>
+    <figure className="grafico">
       <Legenda
         itens={[
           { rotulo: "Entradas", cor: "var(--viz-pos)" },
           { rotulo: "Saídas", cor: "var(--viz-neg)" },
-          { rotulo: "Resultado do mês", cor: "var(--viz-line)", forma: "linha" },
+          { rotulo: "Variação do caixa", cor: "var(--viz-line)", forma: "linha" },
         ]}
       />
       <ResponsiveContainer width="100%" height={altura}>
@@ -159,7 +159,7 @@ export function GraficoFluxoCaixa({
           <Bar dataKey="saida" name="Saídas" stackId="fluxo" fill="var(--viz-neg)" maxBarSize={22} radius={[0, 0, 4, 4]} />
           <Line
             dataKey="resultado"
-            name="Resultado"
+            name="Variação do caixa"
             type="linear"
             stroke="var(--viz-line)"
             strokeWidth={2}
@@ -220,7 +220,7 @@ export function GraficoLinha({
   );
 }
 
-// ─── Saldo acumulado por origem (Caixa × Cris) ──────────────────────────
+// ─── Caixa × total bancado pela Cris ────────────────────────────────────
 
 export function GraficoOrigens({
   dados,
@@ -230,11 +230,11 @@ export function GraficoOrigens({
   altura?: number;
 }) {
   return (
-    <figure className="grafico" style={{ margin: 0 }}>
+    <figure className="grafico">
       <Legenda
         itens={[
-          { rotulo: "Caixa", cor: "var(--viz-caixa)", forma: "linha" },
-          { rotulo: "Cris", cor: "var(--viz-cris)", forma: "linha" },
+          { rotulo: "Caixa da empresa", cor: "var(--viz-caixa)", forma: "linha" },
+          { rotulo: "Total bancado pela Cris", cor: "var(--viz-cris)", forma: "linha" },
         ]}
       />
       <ResponsiveContainer width="100%" height={altura}>
@@ -253,7 +253,7 @@ export function GraficoOrigens({
               <Line
                 key={o}
                 dataKey={o}
-                name={o}
+                name={o === "Caixa" ? "Caixa da empresa" : "Bancado pela Cris"}
                 type="linear"
                 stroke={cor}
                 strokeWidth={2}
@@ -270,21 +270,21 @@ export function GraficoOrigens({
   );
 }
 
-// ─── Reserva de caixa: acumulado vs. meta ───────────────────────────────
+// ─── Meta anual: VGV acumulado vs. meta proporcional ────────────────────
 
-export function GraficoReserva({
+export function GraficoMeta({
   dados,
   altura = 280,
 }: {
-  dados: { mes: string; acumulado: number; meta: number }[];
+  dados: { mes: string; alcancado: number | null; meta: number }[];
   altura?: number;
 }) {
   return (
-    <figure className="grafico" style={{ margin: 0 }}>
+    <figure className="grafico">
       <Legenda
         itens={[
-          { rotulo: "Caixa acumulado", cor: "var(--viz-caixa)", forma: "linha" },
-          { rotulo: "Meta de reserva", cor: "var(--ink-3)", forma: "tracejada" },
+          { rotulo: "VGV vendido (acumulado)", cor: "var(--viz-bar)", forma: "linha" },
+          { rotulo: "Meta no ritmo do ano", cor: "var(--ink-3)", forma: "tracejada" },
         ]}
       />
       <ResponsiveContainer width="100%" height={altura}>
@@ -299,20 +299,21 @@ export function GraficoReserva({
             )}
           />
           <Area
-            dataKey="acumulado"
-            name="Caixa acumulado"
+            dataKey="alcancado"
+            name="VGV vendido"
             type="linear"
-            stroke="var(--viz-caixa)"
+            stroke="var(--viz-bar)"
             strokeWidth={2}
-            fill="var(--viz-caixa)"
+            fill="var(--viz-bar)"
             fillOpacity={0.1}
-            dot={dados.length <= 18 ? ponto("var(--viz-caixa)") : false}
-            activeDot={pontoAtivo("var(--viz-caixa)")}
+            dot={ponto("var(--viz-bar)")}
+            activeDot={pontoAtivo("var(--viz-bar)")}
+            connectNulls={false}
           />
           <Line
             dataKey="meta"
-            name="Meta de reserva"
-            type="stepAfter"
+            name="Meta no ritmo"
+            type="linear"
             stroke="var(--ink-3)"
             strokeWidth={1.5}
             strokeDasharray="5 4"
@@ -335,7 +336,7 @@ export function GraficoProjecao({
   altura?: number;
 }) {
   return (
-    <figure className="grafico" style={{ margin: 0 }}>
+    <figure className="grafico">
       <Legenda
         itens={[
           { rotulo: "Caixa realizado", cor: "var(--viz-caixa)", forma: "linha" },

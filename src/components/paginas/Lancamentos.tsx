@@ -9,9 +9,17 @@ import { comSinal, noPeriodo } from "@/lib/financeiro/calculos";
 import { dataBR, moeda } from "@/lib/financeiro/formato";
 import { CATEGORIAS_DESPESA, CATEGORIAS_RECEITA, ORIGENS, type Lancamento } from "@/lib/financeiro/tipos";
 
+function titulo(l: Lancamento): string {
+  if (l.cliente || l.produto) return [l.cliente, l.produto].filter(Boolean).join(" · ");
+  if (l.item_custo) return l.item_custo;
+  if (l.socio) return `Retirada · ${l.socio}`;
+  return l.descricao ?? "";
+}
+
 function detalhes(l: Lancamento): string {
-  if (l.cliente || l.produto) return [l.cliente, l.produto, l.cidade, l.corretor && `corretor: ${l.corretor}`].filter(Boolean).join(" · ");
-  if (l.socio) return `Sócio: ${l.socio}`;
+  if (l.cliente || l.produto)
+    return [l.cidade, l.corretor && `corretor ${l.corretor}`, l.vgv !== null && `VGV ${moeda(l.vgv)}`].filter(Boolean).join(" · ");
+  if (l.item_custo || l.socio) return l.descricao ?? "";
   return "";
 }
 
@@ -32,7 +40,7 @@ export function Lancamentos() {
       .filter(
         (l) =>
           !termo ||
-          [l.descricao, l.cliente, l.produto, l.cidade, l.corretor, l.socio, l.categoria]
+          [l.descricao, l.cliente, l.produto, l.cidade, l.corretor, l.socio, l.categoria, l.item_custo]
             .filter(Boolean)
             .some((t) => t!.toLocaleLowerCase("pt-BR").includes(termo)),
       )
@@ -61,7 +69,7 @@ export function Lancamentos() {
         <div className="form" style={{ marginBottom: 18, gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 180px), 1fr))" }}>
           <div className="campo">
             <label htmlFor="f-busca">Buscar</label>
-            <input id="f-busca" type="search" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="cliente, empreendimento…" />
+            <input id="f-busca" type="search" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="cliente, empreendimento, custo…" />
           </div>
           <div className="campo">
             <label htmlFor="f-tipo">Tipo</label>
@@ -91,7 +99,7 @@ export function Lancamentos() {
             </select>
           </div>
           <div className="campo">
-            <label htmlFor="f-origem">Origem</label>
+            <label htmlFor="f-origem">Quem pagou</label>
             <select id="f-origem" value={origem} onChange={(e) => setOrigem(e.target.value)}>
               <option value="">Todas</option>
               {ORIGENS.map((o) => (
@@ -107,9 +115,9 @@ export function Lancamentos() {
               <thead>
                 <tr>
                   <th>Data</th>
-                  <th>Histórico</th>
+                  <th>Lançamento</th>
                   <th>Categoria</th>
-                  <th>Origem</th>
+                  <th>Quem pagou</th>
                   <th className="num">Valor</th>
                   <th className="acoes">
                     <span className="sr-only">Ações</span>
@@ -121,11 +129,11 @@ export function Lancamentos() {
                   <tr key={l.id}>
                     <td className="num">{dataBR(l.data)}</td>
                     <td>
-                      {l.descricao || detalhes(l) || <span className="muted">—</span>}
-                      {l.descricao && detalhes(l) && <span className="secundario">{detalhes(l)}</span>}
+                      {titulo(l) || <span className="muted">—</span>}
+                      {detalhes(l) && <span className="secundario">{detalhes(l)}</span>}
                     </td>
                     <td>{l.categoria}</td>
-                    <td>{l.origem_recurso}</td>
+                    <td>{l.origem_recurso ?? <span className="muted">—</span>}</td>
                     <td className="num">
                       <Valor v={comSinal(l)} tom="auto" sinal />
                     </td>

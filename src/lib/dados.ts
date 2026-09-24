@@ -7,6 +7,7 @@ import {
   type Configuracoes,
   type Lancamento,
   type LancamentoEntrada,
+  type MetaAnual,
 } from "@/lib/financeiro/tipos";
 
 const PAGINA = 1000; // limite padrão de linhas por requisição do Supabase
@@ -30,6 +31,17 @@ export async function buscarConfiguracoes(): Promise<Configuracoes> {
   const { data, error } = await supabase().from("configuracoes").select("*").eq("id", true).maybeSingle();
   if (error) throw new Error(traduzirErro(error.message));
   return normalizarConfiguracoes(data);
+}
+
+export async function buscarMetas(): Promise<MetaAnual[]> {
+  const { data, error } = await supabase().from("metas_anuais").select("ano, meta_vgv").order("ano");
+  if (error) throw new Error(traduzirErro(error.message));
+  return (data ?? []).map((m) => ({ ano: Number(m.ano), meta_vgv: Number(m.meta_vgv) }));
+}
+
+export async function salvarMeta(meta: MetaAnual) {
+  const { error } = await supabase().from("metas_anuais").upsert(meta, { onConflict: "ano" });
+  if (error) throw new Error(traduzirErro(error.message));
 }
 
 export async function criarLancamento(l: LancamentoEntrada) {
@@ -60,6 +72,8 @@ function traduzirErro(msg: string): string {
   if (/lancamentos_categoria_valida/.test(msg)) return "Categoria incompatível com o tipo do lançamento.";
   if (/lancamentos_comissao_tem_corretor/.test(msg)) return "Informe o corretor da venda.";
   if (/lancamentos_retirada_tem_socio/.test(msg)) return "Informe o sócio da retirada.";
+  if (/lancamentos_comissao_tem_vgv/.test(msg)) return "Informe o VGV da venda.";
+  if (/lancamentos_origem_so_em_despesa/.test(msg)) return "Despesas precisam de origem (Caixa ou Cris); receitas não têm origem.";
   if (/Failed to fetch|NetworkError/i.test(msg)) return "Sem conexão com o servidor. Verifique sua internet.";
   return msg;
 }

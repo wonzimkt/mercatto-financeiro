@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   agruparPor,
+  caixaAgora,
+  calcularComissao,
   comissaoMedia,
   custoOperacionalDoMes,
+  despesasPorItem,
   pontoEquilibrio,
+  progressoMeta,
   projecao,
-  reserva,
   resumoMes,
   serieMensal,
   ticketMedioPorMes,
@@ -20,14 +23,19 @@ function l(p: Partial<Lancamento> & Pick<Lancamento, "tipo" | "categoria" | "val
   return {
     id: String(seq),
     descricao: null,
-    origem_recurso: "Caixa",
+    origem_recurso: p.tipo === "despesa" ? "Caixa" : null,
+    item_custo: null,
     corretor: null,
     cliente: null,
     produto: null,
     cidade: null,
     socio: null,
+    vgv: null,
+    comissao_percent: null,
     comissao_bruta: null,
     split_empresa_percent: null,
+    imposto_nf_percent: null,
+    imposto_nf: null,
     criado_por: null,
     criado_em: "",
     atualizado_em: "",
@@ -36,7 +44,7 @@ function l(p: Partial<Lancamento> & Pick<Lancamento, "tipo" | "categoria" | "val
 }
 
 const venda = (data: string, valor: number, extra: Partial<Lancamento> = {}) =>
-  l({ tipo: "receita", categoria: "Comissão de Venda", valor, data, corretor: "Ana", ...extra });
+  l({ tipo: "receita", categoria: "Comissão de Venda", valor, data, corretor: "Ana", vgv: valor * 50, ...extra });
 const custo = (data: string, valor: number, extra: Partial<Lancamento> = {}) =>
   l({ tipo: "despesa", categoria: "Custo Fixo", valor, data, ...extra });
 const retirada = (data: string, valor: number, extra: Partial<Lancamento> = {}) =>
@@ -52,25 +60,57 @@ describe("variacao", () => {
   });
 });
 
-describe("serieMensal / resumoMes", () => {
-  it("acumula saldos iniciais e separa por origem", () => {
+describe("calcularComissao", () => {
+  it("VGV → comissão 5% → split 50/50 → imposto 6% só sobre o split da Mercatto", () => {
+    const c = calcularComissao({ vgv: 1_000_000, comissaoPercent: 5, splitPercent: 50, impostoPercent: 6 });
+    expect(c).toEqual({
+      comissaoTotal: 50_000,
+      splitMercatto: 25_000,
+      splitCorretor: 25_000,
+      impostoNf: 1_500,
+      liquidoMercatto: 23_500,
+    });
+  });
+
+  it("arredonda ao centavo e as partes sempre somam a comissão", () => {
+    const c = calcularComissao({ vgv: 1_234_567.89, comissaoPercent: 5, splitPercent: 50, impostoPercent: 6 });
+    expect(c.comissaoTotal).toBe(61_728.39);
+    expect(c.splitMercatto + c.splitCorretor).toBeCloseTo(c.comissaoTotal, 2);
+    expect(c.impostoNf).toBe(1_851.85);
+    expect(c.liquidoMercatto).toBe(29_012.35);
+  });
+});
+
+describe("caixa", () => {
+  it("receitas entram no caixa; despesas da Cris não saem dele", () => {
     const ls = [
       venda("2026-01-10", 10000),
       custo("2026-01-05", 3000, { origem_recurso: "Cris" }),
-      venda("2026-02-10", 8000, { origem_recurso: "Cris" }),
+      custo("2026-01-06", 1000),
+      venda("2026-02-10", 8000),
       retirada("2026-02-20", 2000),
     ];
-    const [jan, fev] = serieMensal(ls, cfg({ saldo_inicial_caixa: 1000, saldo_inicial_cris: 500 }), [
-      "2026-01",
-      "2026-02",
-    ]);
-    expect(jan.resultado).toBe(7000);
-    expect(jan.acumulado).toBe(8500);
-    expect(jan.acumuladoOrigem).toEqual({ Caixa: 11000, Cris: -2500 });
-    expect(fev.acumulado).toBe(14500);
-    expect(fev.acumuladoOrigem).toEqual({ Caixa: 9000, Cris: 5500 });
+    const [jan, fev] = serieMensal(ls, cfg({ saldo_inicial_caixa: 1000 }), ["2026-01", "2026-02"]);
+    expect(jan.resultado).toBe(6000); // no resultado, a despesa da Cris conta
+    expect(jan.fluxoCaixa).toBe(9000); // no caixa, não
+    expect(jan.caixa).toBe(10000);
+    expect(jan.bancadoCris).toBe(3000);
+    expect(fev.caixa).toBe(16000);
     expect(fev.retiradas).toBe(2000);
-    expect(fev.operacional).toBe(0);
+  });
+
+  it("caixa agora considera só o que já aconteceu", () => {
+    const ls = [
+      venda("2026-09-10", 10000),
+      custo("2026-09-15", 2000),
+      custo("2026-09-16", 700, { origem_recurso: "Cris" }),
+      custo("2026-09-30", 4000),
+    ];
+    expect(caixaAgora(ls, cfg({ saldo_inicial_caixa: 500 }), "2026-09-23")).toEqual({
+      saldo: 8500,
+      aVencer: -4000,
+      bancadoCris: 700,
+    });
   });
 
   it("compara com o mês anterior", () => {
@@ -82,7 +122,7 @@ describe("serieMensal / resumoMes", () => {
 
   it("não é afetado por lançamentos de meses posteriores", () => {
     const ls = [venda("2026-01-10", 1000), venda("2026-05-10", 9000)];
-    expect(serieMensal(ls, cfg(), ["2026-03"])[0].acumulado).toBe(1000);
+    expect(serieMensal(ls, cfg(), ["2026-03"])[0].caixa).toBe(1000);
   });
 });
 
@@ -143,14 +183,25 @@ describe("ponto de equilíbrio", () => {
   });
 });
 
-describe("reserva", () => {
-  it("compara caixa acumulado com custo médio × meses-alvo", () => {
-    const ls = [custo("2026-07-05", 10000), custo("2026-08-05", 10000), venda("2026-08-20", 50000)];
-    const r = reserva(ls, cfg({ reserva_meses_alvo: 6, saldo_inicial_caixa: 20000 }), "2026-09");
-    expect(r.caixa).toBe(50000);
-    expect(r.meta).toBe(60000);
-    expect(r.progresso).toBeCloseTo(50000 / 60000);
-    expect(r.mesesCobertos).toBe(5);
+describe("meta anual de VGV", () => {
+  it("soma o VGV das vendas do ano e compara com a meta e o ritmo", () => {
+    const ls = [
+      venda("2026-02-10", 1, { vgv: 2_000_000 }),
+      venda("2026-08-10", 1, { vgv: 3_000_000 }),
+      venda("2025-12-10", 1, { vgv: 9_000_000 }),
+    ];
+    const p = progressoMeta(ls, 2026, 12_000_000, "2026-06-30");
+    expect(p.alcancado).toBe(5_000_000);
+    expect(p.vendas).toBe(2);
+    expect(p.progresso).toBeCloseTo(5 / 12);
+    expect(p.falta).toBe(7_000_000);
+    expect(p.esperadoAteHoje).toBeCloseTo((12_000_000 * 181) / 365, -1);
+    expect(p.serie[1]).toEqual({ mes: "2026-02", alcancado: 2_000_000, meta: 2_000_000 });
+    expect(p.serie[6].alcancado).toBeNull(); // julho ainda não chegou
+  });
+
+  it("sem meta, não há progresso", () => {
+    expect(progressoMeta([], 2026, 0, "2026-06-30").progresso).toBeNull();
   });
 });
 
@@ -169,13 +220,13 @@ describe("projecao", () => {
     expect(p.base.meses).toEqual(["2026-06", "2026-07", "2026-08"]);
     expect(p.saldoPartida).toBe(42000);
     expect(p.pontos.map((x) => x.mes)).toEqual(["2026-10", "2026-11", "2026-12"]);
-    expect(p.pontos.map((x) => x.acumulado)).toEqual([60000, 78000, 96000]);
+    expect(p.pontos.map((x) => x.caixa)).toEqual([60000, 78000, 96000]);
   });
 
   it("sem histórico, projeta só o custo estimado", () => {
     const p = projecao([], cfg({ custo_fixo_estimado: 5000, saldo_inicial_caixa: 20000 }), "2026-09");
     expect(p.base.fonte).toBe("estimado");
-    expect(p.pontos[2].acumulado).toBe(5000);
+    expect(p.pontos[2].caixa).toBe(5000);
   });
 });
 
@@ -206,5 +257,24 @@ describe("vendas", () => {
       venda("2026-09-01", 1, { cidade: "Itajaí" }),
     ];
     expect(valoresUsados(ls, "cidade")).toEqual(["Balneário Camboriú", "Itajaí"]);
+  });
+});
+
+describe("itens de custo", () => {
+  it("agrupa despesas por item, sem retiradas, e lista as categorias", () => {
+    const ls = [
+      custo("2026-09-01", 3000, { item_custo: "Aluguel" }),
+      custo("2026-09-02", 500, { item_custo: " aluguel " }),
+      l({ tipo: "despesa", categoria: "Marketing", valor: 900, data: "2026-09-03", item_custo: "Portais" }),
+      custo("2026-09-04", 200),
+      retirada("2026-09-05", 10000),
+    ];
+    const r = despesasPorItem(ls, "2026-09-01", "2026-09-30");
+    expect(r.map((g) => [g.nome, g.total])).toEqual([
+      ["Aluguel", 3500],
+      ["Portais", 900],
+      ["Não informado", 200],
+    ]);
+    expect(r[1].categorias).toEqual(["Marketing"]);
   });
 });

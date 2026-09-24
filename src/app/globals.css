@@ -1011,7 +1011,8 @@ fieldset.campo {
   grid-column: 1 / -1;
   display: grid;
   gap: 16px 20px;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  align-items: start;
   padding: 16px 18px 18px;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -1026,6 +1027,22 @@ fieldset.campo {
   gap: 8px 16px;
   font-size: 15px;
   font-weight: 600;
+}
+.calculo {
+  padding: 4px 14px 10px;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+.calculo .tabela td {
+  padding: 8px 0;
+}
+.calculo .tabela tbody tr:hover td {
+  background: transparent;
+}
+.calculo .tabela tfoot td {
+  font-size: 17px;
+  padding-top: 10px;
 }
 .calculadora__resultado {
   display: flex;
@@ -1051,6 +1068,18 @@ fieldset.campo {
   align-items: center;
   padding-top: 16px;
   border-top: 1px solid var(--border);
+}
+
+/* Formulário curto em linha (ex.: definir meta) */
+.form-linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+}
+.form-linha .campo {
+  flex: 1 1 200px;
+  max-width: 280px;
 }
 
 /* ─── Filtros ───────────────────────────────────────────────────────── */

@@ -7,7 +7,7 @@ import { Barras, CabecalhoPagina, Figura, Figuras, Secao } from "@/components/ui
 import { useDados } from "@/components/Painel";
 import { agruparPor, ticketMedioPorMes, vendasNoPeriodo } from "@/lib/financeiro/calculos";
 import { mesesDeEvolucao, nomeMes } from "@/lib/financeiro/datas";
-import { dataBR, moeda, num, percentual } from "@/lib/financeiro/formato";
+import { dataBR, moeda, moedaCompacta, num, percentual } from "@/lib/financeiro/formato";
 
 export function Vendas() {
   const { lancamentos: ls } = useDados();
@@ -20,37 +20,27 @@ export function Vendas() {
   const mesesEvolucao = mesesDeEvolucao(periodo);
   const ticket = ticketMedioPorMes(ls, mesesEvolucao);
 
-  const total = vendas.reduce((s, v) => s + v.valor, 0);
-  const comBruta = vendas.filter((v) => v.comissao_bruta !== null);
-  const bruta = comBruta.reduce((s, v) => s + (v.comissao_bruta ?? 0), 0);
-  const repasse = bruta - comBruta.reduce((s, v) => s + v.valor, 0);
+  const soma = (f: (v: (typeof vendas)[number]) => number | null) => vendas.reduce((s, v) => s + (f(v) ?? 0), 0);
+  const total = soma((v) => v.valor);
+  const vgv = soma((v) => v.vgv);
+  const bruta = soma((v) => v.comissao_bruta);
+  const imposto = soma((v) => v.imposto_nf);
+  const splitMercatto = total + imposto;
+  const splitCorretores = bruta - splitMercatto;
 
   return (
     <main className="pagina">
-      <CabecalhoPagina titulo="Vendas & corretores" descricao={`Comissões que ficaram com a empresa · ${periodo.rotulo}`}>
+      <CabecalhoPagina titulo="Vendas & corretores" descricao={periodo.rotulo}>
         <FiltroPeriodo />
       </CabecalhoPagina>
       <Figuras>
-        <Figura rotulo="Comissão à empresa" valor={total} />
-        <Figura rotulo="Vendas fechadas" valor={vendas.length} formato="numero" />
-        <Figura rotulo="Ticket médio de comissão" valor={vendas.length ? total / vendas.length : null} />
-        <Figura
-          rotulo="Repasse a corretores"
-          valor={comBruta.length ? repasse : null}
-          rodape={
-            comBruta.length ? (
-              <span>
-                de {moeda(bruta)} em comissão total
-                {comBruta.length < vendas.length && ` (${comBruta.length} de ${vendas.length} vendas com cálculo)`}
-              </span>
-            ) : (
-              <span>calculado quando a venda usa a calculadora</span>
-            )
-          }
-        />
+        <Figura rotulo="VGV vendido" valor={vgv} formato="compacto" rodape={<span>{vendas.length} {vendas.length === 1 ? "venda" : "vendas"}</span>} />
+        <Figura rotulo="Comissão total" valor={bruta} rodape={<span>corretores: {moeda(splitCorretores)}</span>} />
+        <Figura rotulo="Líquido Mercatto" valor={total} rodape={<span>após {moeda(imposto)} de imposto na NF</span>} />
+        <Figura rotulo="Ticket médio líquido" valor={vendas.length ? total / vendas.length : null} rodape={<span>por venda</span>} />
       </Figuras>
 
-      <Secao titulo="Ranking de corretores" nota="por comissão gerada à empresa">
+      <Secao titulo="Ranking de corretores" nota="por líquido gerado à Mercatto">
         {corretores.length ? (
           <div className="tabela-wrap">
             <table className="tabela">
@@ -59,8 +49,9 @@ export function Vendas() {
                   <th aria-label="Posição" />
                   <th>Corretor</th>
                   <th className="num">Vendas</th>
+                  <th className="num">VGV</th>
                   <th className="num">Ticket médio</th>
-                  <th className="num">Comissão à empresa</th>
+                  <th className="num">Líquido Mercatto</th>
                   <th className="num">Participação</th>
                 </tr>
               </thead>
@@ -75,6 +66,7 @@ export function Vendas() {
                       </span>
                     </td>
                     <td className="num">{num(c.qtd)}</td>
+                    <td className="num">{moedaCompacta(c.vgv)}</td>
                     <td className="num">{moeda(c.ticket)}</td>
                     <td className="num">{moeda(c.total)}</td>
                     <td className="num">{percentual(c.participacao)}</td>
@@ -86,6 +78,7 @@ export function Vendas() {
                   <td />
                   <td>Total</td>
                   <td className="num">{num(vendas.length)}</td>
+                  <td className="num">{moedaCompacta(vgv)}</td>
                   <td className="num">{moeda(vendas.length ? total / vendas.length : 0)}</td>
                   <td className="num">{moeda(total)}</td>
                   <td className="num">{percentual(1)}</td>
@@ -101,13 +94,13 @@ export function Vendas() {
       <div className="colunas">
         <Secao titulo="Comissão por cidade">
           <Barras
-            itens={cidades.map((c) => ({ nome: c.nome, valor: c.total, detalhe: `${c.qtd} ${c.qtd === 1 ? "venda" : "vendas"}` }))}
+            itens={cidades.map((c) => ({ nome: c.nome, valor: c.total, detalhe: `${c.qtd} ${c.qtd === 1 ? "venda" : "vendas"} · VGV ${moedaCompacta(c.vgv)}` }))}
             vazio="Nenhuma venda no período."
           />
         </Secao>
         <Secao titulo="Comissão por empreendimento">
           <Barras
-            itens={produtos.map((c) => ({ nome: c.nome, valor: c.total, detalhe: `${c.qtd} ${c.qtd === 1 ? "venda" : "vendas"}` }))}
+            itens={produtos.map((c) => ({ nome: c.nome, valor: c.total, detalhe: `${c.qtd} ${c.qtd === 1 ? "venda" : "vendas"} · VGV ${moedaCompacta(c.vgv)}` }))}
             vazio="Nenhuma venda no período."
           />
         </Secao>
@@ -132,8 +125,10 @@ export function Vendas() {
                   <th>Empreendimento</th>
                   <th>Cidade</th>
                   <th>Corretor</th>
+                  <th className="num">VGV</th>
                   <th className="num">Comissão total</th>
-                  <th className="num">Empresa</th>
+                  <th className="num">Imposto NF</th>
+                  <th className="num">Líquido Mercatto</th>
                 </tr>
               </thead>
               <tbody>
@@ -144,7 +139,9 @@ export function Vendas() {
                     <td>{v.produto ?? "—"}</td>
                     <td>{v.cidade ?? "—"}</td>
                     <td>{v.corretor ?? "—"}</td>
+                    <td className="num">{v.vgv !== null ? moeda(v.vgv) : "—"}</td>
                     <td className="num muted">{v.comissao_bruta !== null ? moeda(v.comissao_bruta) : "—"}</td>
+                    <td className="num muted">{v.imposto_nf !== null ? moeda(v.imposto_nf) : "—"}</td>
                     <td className="num">{moeda(v.valor)}</td>
                   </tr>
                 ))}
@@ -152,7 +149,9 @@ export function Vendas() {
               <tfoot>
                 <tr>
                   <td colSpan={5}>Total</td>
-                  <td className="num muted">{comBruta.length ? moeda(bruta) : "—"}</td>
+                  <td className="num">{moeda(vgv)}</td>
+                  <td className="num">{moeda(bruta)}</td>
+                  <td className="num">{moeda(imposto)}</td>
                   <td className="num">{moeda(total)}</td>
                 </tr>
               </tfoot>

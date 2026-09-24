@@ -4,14 +4,15 @@ import { usePathname, useRouter } from "next/navigation";
 import { createContext, Suspense, useCallback, useContext, useEffect, useState } from "react";
 import { MarcaAcesso } from "@/components/Acesso";
 import { Navegacao } from "@/components/Navegacao";
-import { buscarConfiguracoes, buscarLancamentos } from "@/lib/dados";
-import { CONFIG_DEMO, lancamentosDemo, MODO_DEMO } from "@/lib/demo";
-import { CONFIG_PADRAO, type Configuracoes, type Lancamento } from "@/lib/financeiro/tipos";
+import { buscarConfiguracoes, buscarLancamentos, buscarMetas } from "@/lib/dados";
+import { CONFIG_DEMO, lancamentosDemo, METAS_DEMO, MODO_DEMO } from "@/lib/demo";
+import { CONFIG_PADRAO, type Configuracoes, type Lancamento, type MetaAnual } from "@/lib/financeiro/tipos";
 import { destinoDaSessao, supabase } from "@/lib/supabase/cliente";
 
 interface DadosPainel {
   lancamentos: Lancamento[];
   config: Configuracoes;
+  metas: MetaAnual[];
   email: string;
   atualizadoEm: Date | null;
   recarregar: () => Promise<void>;
@@ -40,6 +41,7 @@ export function Painel({ children }: { children: React.ReactNode }) {
   const [erro, setErro] = useState("");
   const [lancamentos, setLancamentos] = useState<Lancamento[]>([]);
   const [config, setConfig] = useState<Configuracoes>(CONFIG_PADRAO);
+  const [metas, setMetas] = useState<MetaAnual[]>([]);
   const [email, setEmail] = useState("");
   const [atualizadoEm, setAtualizadoEm] = useState<Date | null>(null);
 
@@ -47,12 +49,14 @@ export function Painel({ children }: { children: React.ReactNode }) {
     if (MODO_DEMO) {
       setLancamentos(lancamentosDemo());
       setConfig(CONFIG_DEMO);
+      setMetas(METAS_DEMO);
       setAtualizadoEm(new Date());
       return;
     }
-    const [ls, cfg] = await Promise.all([buscarLancamentos(), buscarConfiguracoes()]);
+    const [ls, cfg, mts] = await Promise.all([buscarLancamentos(), buscarConfiguracoes(), buscarMetas()]);
     setLancamentos(ls);
     setConfig(cfg);
+    setMetas(mts);
     setAtualizadoEm(new Date());
   }, []);
 
@@ -161,7 +165,7 @@ export function Painel({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <Contexto.Provider value={{ lancamentos, config, email, atualizadoEm, recarregar }}>
+    <Contexto.Provider value={{ lancamentos, config, metas, email, atualizadoEm, recarregar }}>
       <div className="app">
         <Navegacao email={email} />
         <div className="app__main">
