@@ -8,12 +8,12 @@
 //
 // Secrets (Supabase → Edge Functions → Secrets):
 //   ADMIN_EMAILS   e-mails autorizados a convidar, separados por vírgula
-//   SITE_URL       URL pública do painel, ex.: https://wonzimkt.github.io/mercatto-financeiro
+//   SITE_URL       (opcional) URL pública do painel; padrão: https://wonzimkt.github.io/mercatto-financeiro
 // SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY são injetados automaticamente.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const siteUrl = (Deno.env.get("SITE_URL") ?? "").replace(/\/$/, "");
+const siteUrl = (Deno.env.get("SITE_URL") ?? "https://wonzimkt.github.io/mercatto-financeiro").replace(/\/$/, "");
 const origemPermitida = siteUrl ? new URL(siteUrl).origin : "*";
 
 const cors = {
