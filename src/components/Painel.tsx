@@ -59,8 +59,17 @@ export function Painel({ children }: { children: React.ReactNode }) {
     let vivo = true;
     let cancelar = () => {};
 
+    // Links de convite/recuperação com os modelos padrão do Supabase chegam
+    // aqui com o token no #hash. Lido antes do cliente consumir o hash.
+    const tipoLink = new URLSearchParams(window.location.hash.slice(1)).get("type");
+
     (async () => {
       try {
+        if (tipoLink === "invite" || tipoLink === "recovery") {
+          await supabase().auth.getSession(); // processa o token do link
+          router.replace("/auth/definir-senha/");
+          return;
+        }
         if (MODO_DEMO) {
           setEmail("demonstração (dados fictícios)");
           await recarregar();

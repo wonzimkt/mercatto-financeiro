@@ -93,11 +93,12 @@ npx supabase db push
 3. **URL Configuration**:
    - **Site URL**: `https://wonzimkt.github.io/mercatto-financeiro` (ajuste ao nome do seu repositório, ou ao domínio próprio)
    - **Redirect URLs**: adicione `https://wonzimkt.github.io/mercatto-financeiro/**` e `http://localhost:3000/**`
-4. **Emails → Templates**:
+4. **Emails → Templates** (opcional; exige SMTP próprio, item 6): o app funciona com os modelos
+   padrão do Supabase. Com SMTP configurado, dá para trocar pelos modelos em português da Mercatto:
    - **Invite user**: cole `supabase/templates/convite.html`
    - **Reset password**: cole `supabase/templates/redefinir-senha.html`
 
-   Os modelos levam a `/auth/confirmar/?token_hash=…`, que valida o link no próprio app.
+   Esses modelos levam a `/auth/confirmar/?token_hash=…`, que valida o link no próprio app.
 5. **Policies → Password**: defina tamanho mínimo **10** (a tela de senha já exige isso).
 6. Para produção, configure um **SMTP próprio** (Authentication → Emails → SMTP): o envio padrão do Supabase tem limite baixo de e-mails por hora.
 
