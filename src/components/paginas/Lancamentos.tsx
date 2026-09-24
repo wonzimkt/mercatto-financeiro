@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { FiltroPeriodo, usePeriodo } from "@/components/Filtros";
-import { CabecalhoPagina, Secao, Valor } from "@/components/Livro";
+import { CabecalhoPagina, Secao, Valor } from "@/components/ui";
 import { useDados } from "@/components/Painel";
 import { comSinal, noPeriodo } from "@/lib/financeiro/calculos";
 import { dataBR, moeda } from "@/lib/financeiro/formato";
@@ -49,8 +49,8 @@ export function Lancamentos() {
       </CabecalhoPagina>
 
       <Secao
-        folio="1"
-        titulo="Livro-razão"
+       
+        titulo="Todos os lançamentos"
         nota={`${lista.length} ${lista.length === 1 ? "lançamento" : "lançamentos"}`}
         acoes={
           <Link className="btn btn--primario btn--pequeno" href="/lancamentos/novo/">
@@ -103,7 +103,7 @@ export function Lancamentos() {
 
         {lista.length ? (
           <div className="tabela-wrap">
-            <table className="razao">
+            <table className="tabela">
               <thead>
                 <tr>
                   <th>Data</th>

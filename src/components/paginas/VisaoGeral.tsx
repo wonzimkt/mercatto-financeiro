@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { NavegadorMes, useMesSelecionado } from "@/components/Filtros";
 import { GraficoFluxoCaixa } from "@/components/graficos/Graficos";
-import { Barras, CabecalhoPagina, Delta, Figura, Figuras, Medidor, ROTULO_FONTE, Secao, Valor } from "@/components/Livro";
+import { Barras, CabecalhoPagina, Delta, Figura, Figuras, Medidor, ROTULO_FONTE, Secao, Valor } from "@/components/ui";
 import { useDados } from "@/components/Painel";
 import {
   despesasPorCategoria,
@@ -33,13 +33,13 @@ export function VisaoGeral() {
 
   return (
     <main className="pagina">
-      <CabecalhoPagina titulo="Visão geral" destaque={`de ${nomeMes(mes)}`}>
+      <CabecalhoPagina titulo="Visão geral" descricao={`Resumo de ${nomeMes(mes)}`}>
         <NavegadorMes />
       </CabecalhoPagina>
 
       {semLancamentos && (
-        <p className="aviso" style={{ margin: "20px 0" }}>
-          O livro-razão está vazio. Comece pelas{" "}
+        <p className="aviso">
+          Ainda não há lançamentos. Comece pelas{" "}
           <Link className="link" href="/configuracoes/">
             configurações
           </Link>{" "}
@@ -50,38 +50,34 @@ export function VisaoGeral() {
           .
         </p>
       )}
+      <Figuras>
+        <Figura
+          rotulo="Receita do mês"
+          valor={atual.receita}
+          rodape={<Delta v={r.variacao.receita} />}
+        />
+        <Figura
+          rotulo="Despesa do mês"
+          valor={atual.despesa}
+          rodape={<Delta v={r.variacao.despesa} bomQuandoSobe={false} />}
+        />
+        <Figura
+          rotulo="Saldo do mês"
+          valor={atual.resultado}
+          tom="auto"
+          rodape={<Delta v={r.variacao.resultado} />}
+        />
+        <Figura
+          rotulo="Caixa acumulado"
+          valor={atual.acumulado}
+          tom="auto"
+          rodape={<Delta v={r.variacao.acumulado} />}
+        />
+      </Figuras>
 
-      <Secao folio="1" titulo="O mês em números">
-        <Figuras>
-          <Figura
-            rotulo="Receita do mês"
-            valor={atual.receita}
-            rodape={<Delta v={r.variacao.receita} />}
-          />
-          <Figura
-            rotulo="Despesa do mês"
-            valor={atual.despesa}
-            rodape={<Delta v={r.variacao.despesa} bomQuandoSobe={false} />}
-          />
-          <Figura
-            rotulo="Saldo do mês"
-            valor={atual.resultado}
-            tom="auto"
-            rodape={<Delta v={r.variacao.resultado} />}
-          />
-          <Figura
-            rotulo="Caixa acumulado"
-            valor={atual.acumulado}
-            tom="auto"
-            grande
-            rodape={<Delta v={r.variacao.acumulado} />}
-          />
-        </Figuras>
-      </Secao>
-
-      <Secao folio="2" titulo="Saldo por origem" nota="Caixa da empresa e conta da Cris, separadamente">
+      <Secao titulo="Saldo por origem" nota="Caixa da empresa e conta da Cris, separadamente">
         <div className="tabela-wrap">
-          <table className="razao">
+          <table className="tabela">
             <thead>
               <tr>
                 <th>Origem</th>
@@ -132,7 +128,7 @@ export function VisaoGeral() {
 
       <div className="colunas">
         <Secao
-          folio="3"
+         
           titulo="Ponto de equilíbrio"
           nota={
             <Link className="link" href={`/metas/?mes=${mes}`}>
@@ -171,7 +167,7 @@ export function VisaoGeral() {
           </p>
         </Secao>
 
-        <Secao folio="4" titulo="Reserva de caixa">
+        <Secao titulo="Reserva de caixa">
           <Figuras>
             <Figura rotulo="Caixa acumulado" valor={res.caixa} tom="auto" />
             <Figura rotulo={`Meta · ${config.reserva_meses_alvo} meses`} valor={res.meta} />
@@ -193,14 +189,14 @@ export function VisaoGeral() {
         </Secao>
       </div>
 
-      <Secao folio="5" titulo="Fluxo de caixa" nota={`12 meses até ${nomeMes(mes)}`}>
+      <Secao titulo="Fluxo de caixa" nota={`12 meses até ${nomeMes(mes)}`}>
         <GraficoFluxoCaixa dados={fluxo} />
         <details style={{ marginTop: 12 }}>
           <summary className="link" style={{ fontSize: 13 }}>
             Ver em tabela
           </summary>
           <div className="tabela-wrap">
-            <table className="razao" style={{ marginTop: 10 }}>
+            <table className="tabela" style={{ marginTop: 10 }}>
               <thead>
                 <tr>
                   <th>Mês</th>
@@ -230,7 +226,7 @@ export function VisaoGeral() {
         </details>
       </Secao>
 
-      <Secao folio="6" titulo="Despesas por categoria" nota={nomeMes(mes)}>
+      <Secao titulo="Despesas por categoria" nota={nomeMes(mes)}>
         <Barras
           itens={categorias.map((c) => ({
             nome: c.nome,

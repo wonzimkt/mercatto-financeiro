@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { CabecalhoPagina, Secao } from "@/components/Livro";
+import { CabecalhoPagina, Secao } from "@/components/ui";
 import { supabase } from "@/lib/supabase/cliente";
 
 export function Usuarios() {
@@ -42,12 +42,11 @@ export function Usuarios() {
   return (
     <main className="pagina">
       <CabecalhoPagina
-        titulo="Usuários"
-        destaque="& convites"
+        titulo="Usuários & convites"
         descricao="Não existe cadastro público. Quem entra no sistema é convidado por aqui ou pelo painel do Supabase."
       />
       <div className="colunas">
-        <Secao folio="1" titulo="Convidar por e-mail">
+        <Secao titulo="Convidar por e-mail">
           <form className="form form--estreito" onSubmit={convidar} noValidate>
             <div className="campo">
               <label htmlFor="email-convite">E-mail</label>
@@ -72,7 +71,7 @@ export function Usuarios() {
             )}
           </form>
         </Secao>
-        <Secao folio="2" titulo="Como funciona">
+        <Secao titulo="Como funciona">
           <ol className="campo__ajuda" style={{ fontSize: 14, lineHeight: 1.7, paddingLeft: 18, margin: 0 }}>
             <li>A pessoa recebe um e-mail e define a própria senha.</li>
             <li>No primeiro acesso, o sistema exige cadastrar um app autenticador (Google Authenticator, 1Password, Authy…).</li>
@@ -82,7 +81,7 @@ export function Usuarios() {
             </li>
             <li>
               Para remover alguém: Supabase → Authentication → Users → excluir o usuário. Os lançamentos que ele criou
-              continuam no livro-razão.
+              continuam registrados.
             </li>
           </ol>
         </Secao>

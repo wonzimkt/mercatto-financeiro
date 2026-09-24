@@ -1,7 +1,7 @@
 "use client";
 
 import { FiltroPeriodo, usePeriodo } from "@/components/Filtros";
-import { CabecalhoPagina, Secao } from "@/components/Livro";
+import { CabecalhoPagina, Secao } from "@/components/ui";
 import { useDados } from "@/components/Painel";
 import {
   agruparPor,
@@ -150,8 +150,8 @@ export function Exportar() {
         <FiltroPeriodo />
       </CabecalhoPagina>
 
-      <Secao folio="1" titulo="Relatórios" nota={periodo.rotulo}>
-        <table className="razao">
+      <Secao titulo="Relatórios" nota={periodo.rotulo}>
+        <table className="tabela">
           <tbody>
             {relatorios.map((r) => (
               <tr key={r.titulo}>

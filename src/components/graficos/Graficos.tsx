@@ -32,7 +32,7 @@ import { nomeMes } from "@/lib/financeiro/datas";
 
 const eixoX = {
   tick: { fill: "var(--viz-axis)", fontSize: 12 },
-  axisLine: { stroke: "var(--rule)" },
+  axisLine: { stroke: "var(--border)" },
   tickLine: false,
   tickMargin: 8,
   interval: "preserveStartEnd" as const,
@@ -116,8 +116,8 @@ export function Legenda({
 }
 
 const rotuloMes = (m: string) => nomeMes(m, "curto");
-const ponto = (cor: string) => ({ r: 4, fill: cor, stroke: "var(--bg)", strokeWidth: 2 });
-const pontoAtivo = (cor: string) => ({ r: 6, fill: cor, stroke: "var(--bg)", strokeWidth: 2 });
+const ponto = (cor: string) => ({ r: 4, fill: cor, stroke: "var(--surface)", strokeWidth: 2 });
+const pontoAtivo = (cor: string) => ({ r: 6, fill: cor, stroke: "var(--surface)", strokeWidth: 2 });
 
 // ─── Fluxo de caixa (entradas ↑, saídas ↓, resultado em linha) ──────────
 
@@ -143,9 +143,9 @@ export function GraficoFluxoCaixa({
           {grade}
           <XAxis dataKey="mes" tickFormatter={rotuloMes} {...eixoX} />
           <YAxis {...eixoY} />
-          <ReferenceLine y={0} stroke="var(--rule-strong)" />
+          <ReferenceLine y={0} stroke="var(--border-strong)" />
           <Tooltip
-            cursor={{ fill: "var(--rule-soft)" }}
+            cursor={{ fill: "var(--surface-2)" }}
             content={(p) => (
               <Dica
                 active={p.active}
@@ -198,7 +198,7 @@ export function GraficoLinha({
         <XAxis dataKey="mes" tickFormatter={rotuloMes} {...eixoX} hide={compacto} />
         <YAxis {...eixoY} width={compacto ? 56 : 76} tickCount={compacto ? 3 : 5} />
         <Tooltip
-          cursor={{ stroke: "var(--rule-strong)", strokeWidth: 1 }}
+          cursor={{ stroke: "var(--border-strong)", strokeWidth: 1 }}
           content={(p) => (
             <Dica active={p.active} payload={p.payload as ReadonlyArray<ItemDica> | undefined} label={p.label} formatar={formatar} />
           )}
@@ -242,9 +242,9 @@ export function GraficoOrigens({
           {grade}
           <XAxis dataKey="mes" tickFormatter={rotuloMes} {...eixoX} />
           <YAxis {...eixoY} />
-          <ReferenceLine y={0} stroke="var(--rule-strong)" />
+          <ReferenceLine y={0} stroke="var(--border-strong)" />
           <Tooltip
-            cursor={{ stroke: "var(--rule-strong)", strokeWidth: 1 }}
+            cursor={{ stroke: "var(--border-strong)", strokeWidth: 1 }}
             content={(p) => <Dica active={p.active} payload={p.payload as ReadonlyArray<ItemDica> | undefined} label={p.label} />}
           />
           {(["Caixa", "Cris"] as const).map((o) => {
@@ -293,7 +293,7 @@ export function GraficoReserva({
           <XAxis dataKey="mes" tickFormatter={rotuloMes} {...eixoX} />
           <YAxis {...eixoY} />
           <Tooltip
-            cursor={{ stroke: "var(--rule-strong)", strokeWidth: 1 }}
+            cursor={{ stroke: "var(--border-strong)", strokeWidth: 1 }}
             content={(p) => (
               <Dica active={p.active} payload={p.payload as ReadonlyArray<ItemDica> | undefined} label={p.label} tracejadas={["meta"]} />
             )}
@@ -347,9 +347,9 @@ export function GraficoProjecao({
           {grade}
           <XAxis dataKey="mes" tickFormatter={rotuloMes} {...eixoX} />
           <YAxis {...eixoY} />
-          <ReferenceLine y={0} stroke="var(--rule-strong)" />
+          <ReferenceLine y={0} stroke="var(--border-strong)" />
           <Tooltip
-            cursor={{ stroke: "var(--rule-strong)", strokeWidth: 1 }}
+            cursor={{ stroke: "var(--border-strong)", strokeWidth: 1 }}
             content={(p) => (
               <Dica
                 active={p.active}
@@ -379,7 +379,7 @@ export function GraficoProjecao({
             stroke="var(--viz-caixa)"
             strokeWidth={2}
             strokeDasharray="6 5"
-            dot={{ r: 4, fill: "var(--bg)", stroke: "var(--viz-caixa)", strokeWidth: 2 }}
+            dot={{ r: 4, fill: "var(--surface)", stroke: "var(--viz-caixa)", strokeWidth: 2 }}
             activeDot={pontoAtivo("var(--viz-caixa)")}
             connectNulls={false}
           />

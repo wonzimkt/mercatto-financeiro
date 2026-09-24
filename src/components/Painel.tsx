@@ -2,7 +2,8 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { createContext, Suspense, useCallback, useContext, useEffect, useState } from "react";
-import { Cabecalho } from "@/components/Cabecalho";
+import { MarcaAcesso } from "@/components/Acesso";
+import { Navegacao } from "@/components/Navegacao";
 import { buscarConfiguracoes, buscarLancamentos } from "@/lib/dados";
 import { CONFIG_DEMO, lancamentosDemo, MODO_DEMO } from "@/lib/demo";
 import { CONFIG_PADRAO, type Configuracoes, type Lancamento } from "@/lib/financeiro/tipos";
@@ -99,7 +100,7 @@ export function Painel({ children }: { children: React.ReactNode }) {
         // O RLS devolveria listas vazias; melhor explicar o motivo.
         if (data.user.app_metadata?.mercatto_membro !== true) {
           setErro(
-            `A conta ${data.user.email} ainda não foi autorizada a ver o livro-razão. ` +
+            `A conta ${data.user.email} ainda não foi liberada para acessar o sistema. ` +
               "Peça a um administrador para liberar o acesso e entre novamente.",
           );
           setFase("erro");
@@ -128,7 +129,7 @@ export function Painel({ children }: { children: React.ReactNode }) {
   if (fase === "verificando" || fase === "carregando") {
     return (
       <div className="carregando" role="status">
-        {fase === "verificando" ? "Conferindo credenciais…" : "Abrindo o livro-razão…"}
+        {fase === "verificando" ? "Conferindo credenciais…" : "Carregando dados…"}
       </div>
     );
   }
@@ -137,7 +138,7 @@ export function Painel({ children }: { children: React.ReactNode }) {
     return (
       <main className="acesso">
         <div className="acesso__folha">
-          <div className="acesso__marca">Mercatto</div>
+          <MarcaAcesso />
           <h1 className="acesso__titulo">Não foi possível abrir</h1>
           <p className="aviso aviso--erro">{erro}</p>
           <p style={{ display: "flex", gap: 12, marginTop: 20 }}>
@@ -161,20 +162,24 @@ export function Painel({ children }: { children: React.ReactNode }) {
 
   return (
     <Contexto.Provider value={{ lancamentos, config, email, atualizadoEm, recarregar }}>
-      <Cabecalho email={email} />
-      <Suspense fallback={<div className="carregando">Carregando…</div>}>{children}</Suspense>
-      <footer className="rodape-pagina">
-        <span>Mercatto Imóveis · Balneário Camboriú &amp; Praia Brava</span>
-        <span>
-          {lancamentos.length} lançamentos
-          {atualizadoEm &&
-            ` · atualizado às ${atualizadoEm.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`}{" "}
-          ·{" "}
-          <button className="link" onClick={() => recarregar().catch((e) => alert(e.message))}>
-            recarregar
-          </button>
-        </span>
-      </footer>
+      <div className="app">
+        <Navegacao email={email} />
+        <div className="app__main">
+          <Suspense fallback={<div className="carregando">Carregando…</div>}>{children}</Suspense>
+          <footer className="rodape-pagina">
+            <span>Mercatto Imóveis · Balneário Camboriú &amp; Praia Brava</span>
+            <span>
+              {lancamentos.length} lançamentos
+              {atualizadoEm &&
+                ` · atualizado às ${atualizadoEm.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`}{" "}
+              ·{" "}
+              <button className="link" onClick={() => recarregar().catch((e) => alert(e.message))}>
+                Atualizar dados
+              </button>
+            </span>
+          </footer>
+        </div>
+      </div>
     </Contexto.Provider>
   );
 }

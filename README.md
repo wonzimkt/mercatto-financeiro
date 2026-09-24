@@ -1,4 +1,4 @@
-# Mercatto · Livro-razão
+# Mercatto · Financeiro
 
 Controle financeiro interno da Mercatto Imóveis (Balneário Camboriú e Praia Brava):
 receitas e despesas, comissões por corretor, ponto de equilíbrio, reserva de caixa,
@@ -48,9 +48,11 @@ src/
     (painel)/                     telas protegidas: visão geral, vendas, despesas, metas,
                                   sócios, lançamentos, exportação, configurações, usuários
     login/ mfa/ esqueci-senha/ auth/   telas de acesso
-    globals.css                   tema marinho/papel, tipografia, tabelas de razão
+    globals.css                   tema claro/escuro, layout e componentes visuais
   components/
     Painel.tsx                    porteiro (sessão + MFA) e carga dos dados
+    Navegacao.tsx                 menu lateral (gaveta no celular)
+    ui.tsx                        cards, indicadores, variação, barras
     FormLancamento.tsx            formulário com calculadora de comissão e autocomplete
     graficos/Graficos.tsx         gráficos (Recharts)
     paginas/                      uma view por aba
@@ -200,8 +202,9 @@ Todas em `src/lib/financeiro/calculos.ts`, cobertas por testes.
 
 ## Design
 
-Estética de livro-razão: marinho profundo (padrão) ou papel, dourado envelhecido nos acentos, verde-petróleo para
-positivos e terracota para negativos, sempre acompanhados de sinal, seta ou parênteses (a cor nunca é o único sinal).
-Fraunces (serifada) nos títulos e números grandes, IBM Plex Sans no resto, algarismos tabulares nas tabelas, fios finos
-no lugar de sombras e linha dupla sob os totais. As cores dos gráficos foram validadas para daltonismo nos dois temas,
-e todos os textos passam de 4,5:1 de contraste.
+Visual neutro de app financeiro: cinzas, um azul de destaque e a fonte Inter com algarismos tabulares.
+- **Navegação:** menu lateral agrupado (Análises, Registros, Administração); no celular vira uma gaveta, com botão de novo lançamento sempre à mão.
+- **Organização:** indicadores e seções em cards com bordas suaves; campos de formulário com borda e foco visível.
+- **Cores com significado:** verde-azulado e vermelho só marcam valores positivos e negativos, sempre com sinal ou seta (a cor nunca é o único sinal).
+- **Tema:** claro por padrão, escuro conforme o sistema ou pelo botão no menu.
+- **Acessibilidade:** as cores dos gráficos foram validadas para daltonismo nos dois temas, e os textos passam de 4,5:1 de contraste.

@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { FiltroPeriodo, usePeriodo } from "@/components/Filtros";
 import { GraficoLinha } from "@/components/graficos/Graficos";
-import { Barras, CabecalhoPagina, Figura, Figuras, Secao } from "@/components/Livro";
+import { Barras, CabecalhoPagina, Figura, Figuras, Secao } from "@/components/ui";
 import { useDados } from "@/components/Painel";
 import { agruparPor, ticketMedioPorMes, vendasNoPeriodo } from "@/lib/financeiro/calculos";
 import { mesesDeEvolucao, nomeMes } from "@/lib/financeiro/datas";
@@ -27,36 +27,33 @@ export function Vendas() {
 
   return (
     <main className="pagina">
-      <CabecalhoPagina titulo="Vendas" destaque="& corretores" descricao={`Comissões que ficaram com a empresa · ${periodo.rotulo}`}>
+      <CabecalhoPagina titulo="Vendas & corretores" descricao={`Comissões que ficaram com a empresa · ${periodo.rotulo}`}>
         <FiltroPeriodo />
       </CabecalhoPagina>
+      <Figuras>
+        <Figura rotulo="Comissão à empresa" valor={total} />
+        <Figura rotulo="Vendas fechadas" valor={vendas.length} formato="numero" />
+        <Figura rotulo="Ticket médio de comissão" valor={vendas.length ? total / vendas.length : null} />
+        <Figura
+          rotulo="Repasse a corretores"
+          valor={comBruta.length ? repasse : null}
+          rodape={
+            comBruta.length ? (
+              <span>
+                de {moeda(bruta)} em comissão total
+                {comBruta.length < vendas.length && ` (${comBruta.length} de ${vendas.length} vendas com cálculo)`}
+              </span>
+            ) : (
+              <span>calculado quando a venda usa a calculadora</span>
+            )
+          }
+        />
+      </Figuras>
 
-      <Secao folio="1" titulo="Resumo do período">
-        <Figuras>
-          <Figura rotulo="Comissão à empresa" valor={total} grande />
-          <Figura rotulo="Vendas fechadas" valor={vendas.length} formato="numero" />
-          <Figura rotulo="Ticket médio de comissão" valor={vendas.length ? total / vendas.length : null} />
-          <Figura
-            rotulo="Repasse a corretores"
-            valor={comBruta.length ? repasse : null}
-            rodape={
-              comBruta.length ? (
-                <span>
-                  de {moeda(bruta)} em comissão total
-                  {comBruta.length < vendas.length && ` (${comBruta.length} de ${vendas.length} vendas com cálculo)`}
-                </span>
-              ) : (
-                <span>calculado quando a venda usa a calculadora</span>
-              )
-            }
-          />
-        </Figuras>
-      </Secao>
-
-      <Secao folio="2" titulo="Ranking de corretores" nota="por comissão gerada à empresa">
+      <Secao titulo="Ranking de corretores" nota="por comissão gerada à empresa">
         {corretores.length ? (
           <div className="tabela-wrap">
-            <table className="razao">
+            <table className="tabela">
               <thead>
                 <tr>
                   <th aria-label="Posição" />
@@ -102,13 +99,13 @@ export function Vendas() {
       </Secao>
 
       <div className="colunas">
-        <Secao folio="3" titulo="Comissão por cidade">
+        <Secao titulo="Comissão por cidade">
           <Barras
             itens={cidades.map((c) => ({ nome: c.nome, valor: c.total, detalhe: `${c.qtd} ${c.qtd === 1 ? "venda" : "vendas"}` }))}
             vazio="Nenhuma venda no período."
           />
         </Secao>
-        <Secao folio="4" titulo="Comissão por empreendimento">
+        <Secao titulo="Comissão por empreendimento">
           <Barras
             itens={produtos.map((c) => ({ nome: c.nome, valor: c.total, detalhe: `${c.qtd} ${c.qtd === 1 ? "venda" : "vendas"}` }))}
             vazio="Nenhuma venda no período."
@@ -117,17 +114,17 @@ export function Vendas() {
       </div>
 
       <Secao
-        folio="5"
+       
         titulo="Ticket médio mês a mês"
         nota={`${nomeMes(mesesEvolucao[0], "curto")} a ${nomeMes(mesesEvolucao[mesesEvolucao.length - 1], "curto")} · meses sem venda ficam em branco`}
       >
         <GraficoLinha dados={ticket.map((t) => ({ mes: t.mes, valor: t.ticket }))} nome="Ticket médio" altura={240} />
       </Secao>
 
-      <Secao folio="6" titulo="Vendas do período" nota={`${vendas.length} ${vendas.length === 1 ? "venda" : "vendas"}`}>
+      <Secao titulo="Vendas do período" nota={`${vendas.length} ${vendas.length === 1 ? "venda" : "vendas"}`}>
         {vendas.length ? (
           <div className="tabela-wrap">
-            <table className="razao">
+            <table className="tabela">
               <thead>
                 <tr>
                   <th>Data</th>

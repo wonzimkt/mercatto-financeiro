@@ -50,7 +50,7 @@ export function Login() {
   }
 
   return (
-    <Acesso titulo="Livro-razão" texto="Acesso restrito à equipe Mercatto. Senha e código do autenticador.">
+    <Acesso titulo="Entrar" texto="Acesso restrito à equipe Mercatto.">
       <form className="form form--estreito" onSubmit={entrar}>
         <div className="campo">
           <label htmlFor="email">E-mail</label>

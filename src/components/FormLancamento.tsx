@@ -241,7 +241,7 @@ export function FormLancamento({ inicial }: { inicial?: Lancamento }) {
 
       <fieldset className="campo">
         <legend>Origem do recurso</legend>
-        <div className="segmentos" style={{ marginTop: 6 }}>
+        <div className="segmentos">
           {ORIGENS.map((o) => (
             <label key={o}>
               <input
@@ -261,11 +261,11 @@ export function FormLancamento({ inicial }: { inicial?: Lancamento }) {
 
       {ehComissao && (
         <div className="calculadora">
-          <div className="calculadora__titulo" style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "baseline" }}>
+          <div className="calculadora__titulo">
             Calculadora de comissão
-            <label className="campo__ajuda" style={{ display: "inline-flex", gap: 6, alignItems: "center", fontFamily: "var(--sans)" }}>
+            <label className="caixa-selecao">
               <input type="checkbox" checked={usarCalculadora} onChange={(e) => setUsarCalculadora(e.target.checked)} />
-              calcular o líquido a partir da comissão total
+              Calcular o líquido a partir da comissão total
             </label>
           </div>
           {usarCalculadora ? (
@@ -297,7 +297,7 @@ export function FormLancamento({ inicial }: { inicial?: Lancamento }) {
                 {erros.split && <span className="campo__erro">{erros.split}</span>}
               </div>
               <div className="calculadora__resultado" aria-live="polite">
-                <span className="versal">Líquido da empresa</span>
+                <span className="rotulo">Líquido da empresa</span>
                 <strong className={Number.isFinite(liquidoCalculado) ? "pos" : "muted"}>
                   {Number.isFinite(liquidoCalculado) ? moeda(liquidoCalculado) : "—"}
                 </strong>

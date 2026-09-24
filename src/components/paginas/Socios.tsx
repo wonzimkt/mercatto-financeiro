@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { FiltroPeriodo, usePeriodo } from "@/components/Filtros";
 import { GraficoOrigens } from "@/components/graficos/Graficos";
-import { Barras, CabecalhoPagina, Figura, Figuras, Secao, Valor } from "@/components/Livro";
+import { Barras, CabecalhoPagina, Figura, Figuras, Secao, Valor } from "@/components/ui";
 import { useDados } from "@/components/Painel";
 import { agruparPor, ehRetirada, mesesDoHistorico, retiradasNoPeriodo, serieMensal } from "@/lib/financeiro/calculos";
 import { chaveMes } from "@/lib/financeiro/datas";
@@ -36,27 +36,27 @@ export function Socios() {
 
   return (
     <main className="pagina">
-      <CabecalhoPagina titulo="Sócios" destaque="& retiradas" descricao={periodo.rotulo}>
+      <CabecalhoPagina titulo="Sócios & retiradas" descricao={periodo.rotulo}>
         <FiltroPeriodo />
       </CabecalhoPagina>
 
-      <Secao folio="1" titulo="Retiradas no período">
+      <Secao titulo="Retiradas no período">
         <Figuras>
-          <Figura rotulo="Total retirado" valor={totalPeriodo} grande />
+          <Figura rotulo="Total retirado" valor={totalPeriodo} />
           {porSocio.slice(0, 3).map((s) => (
             <Figura key={s.nome} rotulo={s.nome} valor={s.total} rodape={<span>{s.qtd} {s.qtd === 1 ? "retirada" : "retiradas"}</span>} />
           ))}
         </Figuras>
         <div className="colunas" style={{ marginTop: 18 }}>
           <div>
-            <p className="versal" style={{ margin: "0 0 6px" }}>Por sócio · período</p>
+            <p className="rotulo" style={{ margin: "0 0 6px" }}>Por sócio · período</p>
             <Barras
               itens={porSocio.map((s) => ({ nome: s.nome, valor: s.total, detalhe: `${s.qtd} ${s.qtd === 1 ? "retirada" : "retiradas"}` }))}
               vazio="Nenhuma retirada no período."
             />
           </div>
           <div>
-            <p className="versal" style={{ margin: "0 0 6px" }}>Por sócio · todo o histórico</p>
+            <p className="rotulo" style={{ margin: "0 0 6px" }}>Por sócio · todo o histórico</p>
             <Barras
               itens={porSocioTotal.map((s) => ({ nome: s.nome, valor: s.total, detalhe: `${s.qtd} ${s.qtd === 1 ? "retirada" : "retiradas"}` }))}
               vazio="Nenhuma retirada registrada."
@@ -65,7 +65,7 @@ export function Socios() {
         </div>
       </Secao>
 
-      <Secao folio="2" titulo="Saldo por origem ao longo do tempo" nota="acumulado ao fim de cada mês, com saldos iniciais">
+      <Secao titulo="Saldo por origem ao longo do tempo" nota="acumulado ao fim de cada mês, com saldos iniciais">
         <Figuras>
           <Figura rotulo="Caixa" valor={ultimo?.Caixa ?? 0} tom="auto" />
           <Figura rotulo="Cris" valor={ultimo?.Cris ?? 0} tom="auto" />
@@ -75,10 +75,10 @@ export function Socios() {
         </div>
       </Secao>
 
-      <Secao folio="3" titulo="Histórico completo de retiradas" nota={`${historico.length} registros`}>
+      <Secao titulo="Histórico completo de retiradas" nota={`${historico.length} registros`}>
         {historico.length ? (
           <div className="tabela-wrap">
-            <table className="razao">
+            <table className="tabela">
               <thead>
                 <tr>
                   <th>Data</th>

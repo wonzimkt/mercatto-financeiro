@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { CabecalhoPagina, Secao } from "@/components/Livro";
+import { CabecalhoPagina, Secao } from "@/components/ui";
 import { useDados } from "@/components/Painel";
 import { salvarConfiguracoes } from "@/lib/dados";
 import { lerValor, paraCampo } from "@/lib/financeiro/formato";

@@ -4,20 +4,21 @@ const numero = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 });
 const pct = new Intl.NumberFormat("pt-BR", { style: "percent", maximumFractionDigits: 1 });
 const compacto = new Intl.NumberFormat("pt-BR", { notation: "compact", maximumFractionDigits: 1 });
 
-export const moeda = (v: number) => brl.format(v);
+/** R$ 1.200,00 — negativos com sinal de menos tipográfico (−R$ 1.200,00). */
+export const moeda = (v: number) => (v < 0 ? `−${brl.format(-v)}` : brl.format(v));
 export const moedaInteira = (v: number) => brlInteiro.format(v);
 export const num = (v: number) => numero.format(v);
 export const percentual = (v: number) => pct.format(v);
 
-/** Convenção contábil: negativos entre parênteses — (R$ 1.200,00). */
-export function contabil(v: number): string {
-  return v < 0 ? `(${brl.format(Math.abs(v))})` : brl.format(v);
+/** Com sinal explícito: +R$ 1.200,00 / −R$ 1.200,00. */
+export function moedaComSinal(v: number): string {
+  return v > 0 ? `+${brl.format(v)}` : moeda(v);
 }
 
 /** Para eixos de gráfico: R$ 12,5 mil. */
 export function moedaCompacta(v: number): string {
-  if (Math.abs(v) < 1000) return brlInteiro.format(v);
-  return `R$ ${compacto.format(v)}`;
+  if (Math.abs(v) < 1000) return (v < 0 ? "−" : "") + brlInteiro.format(Math.abs(v));
+  return `${v < 0 ? "−" : ""}R$ ${compacto.format(Math.abs(v))}`;
 }
 
 /** +12,4% / −3,0% com sinal explícito. */

@@ -1,23 +1,15 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, IBM_Plex_Sans } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 
-const fraunces = Fraunces({
+const inter = Inter({
   subsets: ["latin"],
-  axes: ["opsz", "SOFT"],
-  variable: "--font-fraunces",
-  display: "swap",
-});
-
-const plex = IBM_Plex_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  variable: "--font-plex",
+  variable: "--font-inter",
   display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: { default: "Mercatto · Livro-razão", template: "%s · Mercatto" },
+  title: { default: "Mercatto · Financeiro", template: "%s · Mercatto" },
   description: "Controle financeiro interno da Mercatto Imóveis.",
   // Ferramenta privada: fora dos buscadores.
   robots: { index: false, follow: false },
@@ -25,8 +17,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#0b1624" },
-    { media: "(prefers-color-scheme: light)", color: "#0b1624" },
+    { media: "(prefers-color-scheme: dark)", color: "#18181b" },
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
   ],
 };
 
@@ -35,7 +27,7 @@ const scriptTema = `try{var t=localStorage.getItem("mercatto-tema");if(t==="ligh
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR" className={`${fraunces.variable} ${plex.variable}`} suppressHydrationWarning>
+    <html lang="pt-BR" className={inter.variable} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: scriptTema }} />
       </head>

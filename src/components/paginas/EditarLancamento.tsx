@@ -3,14 +3,14 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { FormLancamento } from "@/components/FormLancamento";
-import { CabecalhoPagina, Secao } from "@/components/Livro";
+import { CabecalhoPagina, Secao } from "@/components/ui";
 import { useDados } from "@/components/Painel";
 import { dataBR } from "@/lib/financeiro/formato";
 
 export function NovoLancamento() {
   return (
     <main className="pagina">
-      <CabecalhoPagina titulo="Novo" destaque="lançamento" />
+      <CabecalhoPagina titulo="Novo lançamento" descricao="Registre uma receita ou despesa." />
       <Secao titulo="Registro">
         <FormLancamento />
       </Secao>
@@ -40,8 +40,7 @@ export function EditarLancamento() {
   return (
     <main className="pagina">
       <CabecalhoPagina
-        titulo="Editar"
-        destaque="lançamento"
+        titulo="Editar lançamento"
         descricao={`Registrado em ${dataBR(l.criado_em)}${l.atualizado_em !== l.criado_em ? ` · alterado em ${dataBR(l.atualizado_em)}` : ""}`}
       />
       <Secao titulo={l.categoria}>

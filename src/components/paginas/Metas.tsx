@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { NavegadorMes, useMesSelecionado } from "@/components/Filtros";
 import { GraficoProjecao, GraficoReserva } from "@/components/graficos/Graficos";
-import { CabecalhoPagina, Figura, Figuras, Medidor, ROTULO_FONTE, Secao, Valor } from "@/components/Livro";
+import { CabecalhoPagina, Figura, Figuras, Medidor, ROTULO_FONTE, Secao, Valor } from "@/components/ui";
 import { useDados } from "@/components/Painel";
 import {
   agregarPorMes,
@@ -46,14 +46,14 @@ export function Metas() {
 
   return (
     <main className="pagina">
-      <CabecalhoPagina titulo="Metas" destaque="& projeções" descricao="Ponto de equilíbrio, reserva e para onde o caixa está indo.">
+      <CabecalhoPagina titulo="Metas & projeções" descricao="Ponto de equilíbrio, reserva e para onde o caixa está indo.">
         <NavegadorMes />
       </CabecalhoPagina>
 
-      <Secao folio="1" titulo="Ponto de equilíbrio" nota={nomeMes(mes)}>
+      <Secao titulo="Ponto de equilíbrio" nota={nomeMes(mes)}>
         <div className="colunas">
           <div className="tabela-wrap">
-            <table className="razao">
+            <table className="tabela">
               <tbody>
                 <tr>
                   <td>
@@ -110,8 +110,8 @@ export function Metas() {
 
         <div className="colunas" style={{ marginTop: 20 }}>
           <div>
-            <p className="versal" style={{ margin: "0 0 6px" }}>Custo operacional lançado no mês</p>
-            <table className="razao">
+            <p className="rotulo" style={{ margin: "0 0 6px" }}>Custo operacional lançado no mês</p>
+            <table className="tabela">
               <tbody>
                 {CATEGORIAS_OPERACIONAIS.map((c) => (
                   <tr key={c}>
@@ -128,17 +128,17 @@ export function Metas() {
               </tfoot>
             </table>
           </div>
-          <div className="campo__ajuda" style={{ fontSize: 13.5, lineHeight: 1.6 }}>
-            <p className="versal" style={{ margin: "0 0 6px" }}>Como é calculado</p>
-            <p style={{ margin: "0 0 8px" }}>
+          <div className="ajuda-bloco">
+            <p className="rotulo" style={{ margin: "0 0 6px" }}>Como é calculado</p>
+            <p>
               <strong>Custo operacional</strong> é toda despesa do mês, <em>exceto retirada de sócios</em> — retirada é
               distribuição de lucro, não custo. Em meses encerrados vale o que foi lançado; no mês em curso, vale o maior entre
               o já lançado e a média dos 3 meses anteriores (as contas ainda estão chegando).
             </p>
-            <p style={{ margin: "0 0 8px" }}>
+            <p>
               <strong>Comissão média</strong> é o líquido da empresa por venda nos últimos 12 meses.
             </p>
-            <p style={{ margin: 0 }}>
+            <p>
               Com menos de {MIN_MESES_HISTORICO} meses de histórico de custos ou menos de {MIN_VENDAS_HISTORICO} vendas, o
               painel usa as estimativas das configurações ({moeda(config.custo_fixo_estimado)} de custo e{" "}
               {moeda(config.comissao_media_esperada)} por venda).
@@ -147,7 +147,7 @@ export function Metas() {
         </div>
       </Secao>
 
-      <Secao folio="2" titulo="Projeção de caixa" nota="próximos 3 meses · média móvel">
+      <Secao titulo="Projeção de caixa" nota="próximos 3 meses · média móvel">
         <Figuras>
           <Figura rotulo="Entradas médias / mês" valor={proj.base.receitaMedia} />
           <Figura rotulo="Saídas médias / mês" valor={proj.base.despesaMedia} />
@@ -156,7 +156,6 @@ export function Metas() {
             rotulo={`Caixa em ${nomeMes(proj.pontos[proj.pontos.length - 1].mes, "curto")}`}
             valor={proj.pontos[proj.pontos.length - 1].acumulado}
             tom="auto"
-            grande
           />
         </Figuras>
         <p className="campo__ajuda">
@@ -170,7 +169,7 @@ export function Metas() {
         <div className="colunas" style={{ marginTop: 16 }}>
           <GraficoProjecao dados={dadosProjecao} />
           <div className="tabela-wrap">
-            <table className="razao">
+            <table className="tabela">
               <thead>
                 <tr>
                   <th>Mês</th>
@@ -196,7 +195,7 @@ export function Metas() {
         </div>
       </Secao>
 
-      <Secao folio="3" titulo="Reserva de caixa" nota={`meta: ${config.reserva_meses_alvo} meses de custo operacional`}>
+      <Secao titulo="Reserva de caixa" nota={`meta: ${config.reserva_meses_alvo} meses de custo operacional`}>
         <Figuras>
           <Figura rotulo="Caixa acumulado" valor={res.caixa} tom="auto" />
           <Figura rotulo="Meta" valor={res.meta} rodape={<span>{moeda(res.custoMedio.valor)}/mês · {ROTULO_FONTE[res.custoMedio.fonte]}</span>} />

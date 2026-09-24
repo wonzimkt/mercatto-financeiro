@@ -2,7 +2,7 @@
 
 import { FiltroPeriodo, usePeriodo } from "@/components/Filtros";
 import { GraficoLinha } from "@/components/graficos/Graficos";
-import { CabecalhoPagina, Delta, Figura, Figuras, Secao } from "@/components/Livro";
+import { CabecalhoPagina, Delta, Figura, Figuras, Secao } from "@/components/ui";
 import { useDados } from "@/components/Painel";
 import { despesasPorCategoriaMes, maioresDespesas, noPeriodo, variacao } from "@/lib/financeiro/calculos";
 import { mesesDecorridos, mesesDeEvolucao, nomeMes, somarMeses } from "@/lib/financeiro/datas";
@@ -30,22 +30,19 @@ export function Despesas() {
       <CabecalhoPagina titulo="Despesas" descricao={periodo.rotulo}>
         <FiltroPeriodo />
       </CabecalhoPagina>
-
-      <Secao folio="1" titulo="Resumo do período">
-        <Figuras>
-          <Figura rotulo="Despesa total" valor={total} grande />
-          <Figura rotulo="Custo operacional" valor={total - retiradas} rodape={<span>sem retiradas de sócios</span>} />
-          <Figura rotulo="Retiradas de sócios" valor={retiradas} />
-          <Figura
-            rotulo="Média por mês"
-            valor={decorridos ? total / decorridos : 0}
-            rodape={<span>{decorridos} {decorridos === 1 ? "mês" : "meses"} decorridos</span>}
-          />
-        </Figuras>
-      </Secao>
+      <Figuras>
+        <Figura rotulo="Despesa total" valor={total} />
+        <Figura rotulo="Custo operacional" valor={total - retiradas} rodape={<span>sem retiradas de sócios</span>} />
+        <Figura rotulo="Retiradas de sócios" valor={retiradas} />
+        <Figura
+          rotulo="Média por mês"
+          valor={decorridos ? total / decorridos : 0}
+          rodape={<span>{decorridos} {decorridos === 1 ? "mês" : "meses"} decorridos</span>}
+        />
+      </Figuras>
 
       <Secao
-        folio="2"
+       
         titulo="Evolução por categoria"
         nota={`${nomeMes(meses[0], "curto")} a ${nomeMes(meses[meses.length - 1], "curto")} · cada quadro na sua escala`}
       >
@@ -70,9 +67,9 @@ export function Despesas() {
         </div>
       </Secao>
 
-      <Secao folio="3" titulo="Comparativo mês a mês">
+      <Secao titulo="Comparativo mês a mês">
         <div className="tabela-wrap">
-          <table className="razao">
+          <table className="tabela">
             <thead>
               <tr>
                 <th>Mês</th>
@@ -117,10 +114,10 @@ export function Despesas() {
         </div>
       </Secao>
 
-      <Secao folio="4" titulo="Maiores despesas do período">
+      <Secao titulo="Maiores despesas do período">
         {maiores.length ? (
           <div className="tabela-wrap">
-            <table className="razao">
+            <table className="tabela">
               <thead>
                 <tr>
                   <th>Data</th>
