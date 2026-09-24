@@ -13,7 +13,8 @@ import {
 } from "@/lib/financeiro/calculos";
 import { baixarCsv, gerarCsv, type Celula } from "@/lib/financeiro/csv";
 import { hojeISO, nomeMes } from "@/lib/financeiro/datas";
-import { CATEGORIAS_DESPESA, type Lancamento } from "@/lib/financeiro/tipos";
+import { liquidoPotencial } from "@/lib/financeiro/propostas";
+import { CATEGORIAS_DESPESA, ROTULO_STATUS, type Lancamento } from "@/lib/financeiro/tipos";
 
 const COLUNAS: (keyof Lancamento)[] = [
   "id",
@@ -44,7 +45,7 @@ const linhasLancamentos = (ls: Lancamento[]): Celula[][] =>
   [...ls].sort((a, b) => a.data.localeCompare(b.data)).map((l) => COLUNAS.map((c) => l[c] as Celula));
 
 export function Exportar() {
-  const { lancamentos: ls, config } = useDados();
+  const { lancamentos: ls, config, propostas } = useDados();
   const periodo = usePeriodo();
   const sufixo = periodo.tipo === "personalizado" ? `${periodo.inicio}_a_${periodo.fim}` : periodo.ref;
 
@@ -114,6 +115,31 @@ export function Exportar() {
         gerarCsv(
           ["Mês", ...CATEGORIAS_DESPESA, "Total"],
           despesasPorCategoriaMes(ls, periodo.meses).map((m) => [nomeMes(m.mes), ...CATEGORIAS_DESPESA.map((c) => m[c]), m.total]),
+        ),
+      ],
+    },
+    {
+      titulo: "Propostas",
+      descricao: "Todas as propostas (em negociação, fechadas e perdidas), com VGV e líquido potencial.",
+      gerar: () => [
+        `mercatto-propostas-${hojeISO()}`,
+        gerarCsv(
+          ["Enviada em", "Situação", "Encerrada em", "Produto", "Cliente", "Cidade", "Corretor", "VGV", "Líquido potencial", "Motivo da perda", "Observação"],
+          [...propostas]
+            .sort((a, b) => a.data.localeCompare(b.data))
+            .map((p) => [
+              p.data,
+              ROTULO_STATUS[p.status],
+              p.encerrada_em,
+              p.produto,
+              p.cliente,
+              p.cidade,
+              p.corretor,
+              p.vgv,
+              liquidoPotencial(p.vgv, config),
+              p.motivo_perda,
+              p.observacao,
+            ]),
         ),
       ],
     },

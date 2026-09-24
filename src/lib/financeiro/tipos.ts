@@ -126,3 +126,40 @@ export function normalizarConfiguracoes(c: Record<string, unknown> | null): Conf
     atualizado_em: c.atualizado_em as string | undefined,
   };
 }
+
+// ─── Propostas (não entram no financeiro) ──────────────────────────────
+
+export const STATUS_PROPOSTA = ["negociacao", "fechada", "perdida"] as const;
+export type StatusProposta = (typeof STATUS_PROPOSTA)[number];
+
+export const ROTULO_STATUS: Record<StatusProposta, string> = {
+  negociacao: "Em negociação",
+  fechada: "Fechada",
+  perdida: "Perdida",
+};
+
+export interface Proposta {
+  id: string;
+  /** Data de envio para negociação (AAAA-MM-DD) */
+  data: string;
+  vgv: number;
+  corretor: string;
+  produto: string;
+  cliente: string | null;
+  cidade: string | null;
+  observacao: string | null;
+  status: StatusProposta;
+  /** Quando saiu de negociação (fechada ou perdida) */
+  encerrada_em: string | null;
+  motivo_perda: string | null;
+  /** Lançamento de comissão gerado quando virou venda */
+  lancamento_id: string | null;
+  criado_em: string;
+  atualizado_em: string;
+}
+
+export type PropostaEntrada = Omit<Proposta, "id" | "criado_em" | "atualizado_em">;
+
+export function normalizarProposta(p: Record<string, unknown>): Proposta {
+  return { ...(p as unknown as Proposta), vgv: Number(p.vgv) };
+}

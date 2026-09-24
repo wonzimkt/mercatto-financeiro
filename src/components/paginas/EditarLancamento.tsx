@@ -8,11 +8,24 @@ import { useDados } from "@/components/Painel";
 import { dataBR } from "@/lib/financeiro/formato";
 
 export function NovoLancamento() {
+  const idProposta = useSearchParams().get("proposta");
+  const { propostas } = useDados();
+  const proposta = propostas.find((p) => p.id === idProposta && p.status === "negociacao");
+
   return (
     <main className="pagina">
-      <CabecalhoPagina titulo="Novo lançamento" descricao="Registre uma receita ou despesa." />
+      <CabecalhoPagina
+        titulo={proposta ? "Registrar venda" : "Novo lançamento"}
+        descricao={proposta ? "A comissão entra no financeiro e a proposta fica como fechada." : "Registre uma receita ou despesa."}
+      />
+      {proposta && (
+        <p className="aviso">
+          Venda da proposta <strong>{proposta.produto}</strong> · {proposta.corretor} · enviada em {dataBR(proposta.data)}. Confira o
+          VGV final e a data da nota fiscal.
+        </p>
+      )}
       <Secao titulo="Registro">
-        <FormLancamento />
+        <FormLancamento key={proposta?.id ?? "novo"} proposta={proposta} />
       </Secao>
     </main>
   );

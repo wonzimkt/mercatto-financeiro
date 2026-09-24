@@ -18,7 +18,7 @@ import { hojeISO, mesAtual, nomeMes, primeiroDia, somarMeses, ultimoDia, ultimos
 import { dataBR, moeda, moedaCompacta, num, percentual } from "@/lib/financeiro/formato";
 
 export function VisaoGeral() {
-  const { lancamentos: ls, config, metas } = useDados();
+  const { lancamentos: ls, config, metas, propostas } = useDados();
   const mes = useMesSelecionado();
   const corrente = mesAtual();
   const hoje = hojeISO();
@@ -31,6 +31,8 @@ export function VisaoGeral() {
   const pm = useMemo(() => progressoMeta(ls, ano, meta, hoje), [ls, ano, meta, hoje]);
   const fluxo = useMemo(() => serieMensal(ls, config, ultimosMeses(mes, 12)), [ls, config, mes]);
   const categorias = useMemo(() => despesasPorCategoria(ls, primeiroDia(mes), ultimoDia(mes)), [ls, mes]);
+  const abertas = propostas.filter((p) => p.status === "negociacao");
+  const vgvNegociacao = abertas.reduce((s, p) => s + p.vgv, 0);
 
   const { atual, anterior } = r;
 
@@ -143,6 +145,15 @@ export function VisaoGeral() {
                     : ` · atrasado em ${moedaCompacta(pm.esperadoAteHoje - pm.alcancado)} no ritmo do ano`)}
                 .
               </p>
+              {abertas.length > 0 && (
+                <p className="campo__ajuda" style={{ margin: "6px 0 0" }}>
+                  Em negociação:{" "}
+                  <Link className="link" href="/propostas/">
+                    {moedaCompacta(vgvNegociacao)} em {abertas.length} {abertas.length === 1 ? "proposta" : "propostas"}
+                  </Link>{" "}
+                  (ainda fora do vendido).
+                </p>
+              )}
             </>
           ) : (
             <p className="vazio">

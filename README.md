@@ -1,8 +1,8 @@
 # Mercatto · Financeiro
 
 Controle financeiro interno da Mercatto Imóveis (Balneário Camboriú e Praia Brava):
-receitas e despesas, comissões por corretor, ponto de equilíbrio, reserva de caixa,
-projeções, retiradas de sócios e exportação em CSV.
+receitas e despesas, caixa, comissões por VGV e corretor, meta anual de VGV, propostas em negociação,
+ponto de equilíbrio, projeções, retiradas de sócios e exportação em CSV.
 
 - **Next.js (App Router)** exportado como site estático → **GitHub Pages**
 - **Supabase**: Postgres + Auth (e-mail/senha + **MFA TOTP obrigatório**) + RLS
@@ -42,6 +42,7 @@ supabase/
   migrations/…_schema_inicial.sql tabelas, triggers, permissões e RLS
   migrations/…_somente_membros.sql RLS passa a exigir também membro autorizado
   migrations/…_vgv_metas_itens.sql VGV/imposto NF, origem só em despesas, item de custo, metas anuais
+  migrations/…_propostas.sql      propostas em negociação (fora do financeiro)
   functions/convidar-usuario/     Edge Function de convite (única que usa a service role)
   templates/                      e-mails de convite e de redefinição de senha
 src/
@@ -206,6 +207,11 @@ Todas em `src/lib/financeiro/calculos.ts`, cobertas por testes.
     `comissao_media_esperada` das configurações. A tela sempre informa de onde veio cada número.
 - **Meta de vendas**: meta anual de **VGV vendido** (tabela `metas_anuais`), editada na aba Metas. Alcançado = soma
   do VGV das vendas do ano; o ritmo compara com a meta proporcional aos dias já passados do ano.
+- **Propostas** (tabela `propostas`) acompanham as negociações e **não entram no financeiro**. Quando a venda
+  se concretiza (NF emitida), o botão "Registrar venda" abre o lançamento de comissão já preenchido; ao salvar, a
+  proposta vira "fechada" e passa a apontar para o lançamento. Propostas perdidas guardam data e motivo. A aba mostra
+  VGV em negociação, líquido potencial (pelos percentuais padrão), propostas paradas há mais de 30 dias e a
+  conversão dos últimos 12 meses.
 - **Projeção (3 meses)**: média móvel simples das entradas e saídas do caixa dos últimos 3 meses encerrados,
   somada ao caixa atual. Sem histórico, projeta só o custo estimado, sem receita (cenário prudente).
 - **Exportação**: CSV com `;`, vírgula decimal e BOM UTF-8, para abrir direto no Excel em português. Gerado no navegador.

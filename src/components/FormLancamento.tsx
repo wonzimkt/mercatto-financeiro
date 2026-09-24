@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState, type FormEvent } from "react";
 import { useDados } from "@/components/Painel";
-import { atualizarLancamento, criarLancamento, excluirLancamento } from "@/lib/dados";
+import { atualizarLancamento, atualizarProposta, criarLancamento, excluirLancamento } from "@/lib/dados";
 import { calcularComissao, valoresUsados } from "@/lib/financeiro/calculos";
 import { hojeISO, validaData } from "@/lib/financeiro/datas";
 import { lerValor, moeda, paraCampo } from "@/lib/financeiro/formato";
@@ -16,6 +16,7 @@ import {
   type Lancamento,
   type LancamentoEntrada,
   type Origem,
+  type Proposta,
   type Tipo,
 } from "@/lib/financeiro/tipos";
 
@@ -24,7 +25,12 @@ type Erros = Partial<Record<string, string>>;
 /** "5" / "2,5" — percentuais sem casas desnecessárias. */
 const pct = (v: number) => (Number.isFinite(v) ? String(Math.round(v * 100) / 100).replace(".", ",") : "—");
 
-export function FormLancamento({ inicial }: { inicial?: Lancamento }) {
+/**
+ * `proposta`: ao registrar a venda de uma proposta, o formulário já vem
+ * preenchido e, ao salvar, a proposta passa a "fechada" apontando para o
+ * lançamento criado.
+ */
+export function FormLancamento({ inicial, proposta }: { inicial?: Lancamento; proposta?: Proposta }) {
   const router = useRouter();
   const { lancamentos, config, recarregar } = useDados();
 
@@ -35,14 +41,14 @@ export function FormLancamento({ inicial }: { inicial?: Lancamento }) {
   const [origem, setOrigem] = useState<Origem | "">(inicial?.origem_recurso ?? "");
   const [itemCusto, setItemCusto] = useState(inicial?.item_custo ?? "");
   const [descricao, setDescricao] = useState(inicial?.descricao ?? "");
-  const [corretor, setCorretor] = useState(inicial?.corretor ?? "");
-  const [cliente, setCliente] = useState(inicial?.cliente ?? "");
-  const [produto, setProduto] = useState(inicial?.produto ?? "");
-  const [cidade, setCidade] = useState(inicial?.cidade ?? "");
+  const [corretor, setCorretor] = useState(inicial?.corretor ?? proposta?.corretor ?? "");
+  const [cliente, setCliente] = useState(inicial?.cliente ?? proposta?.cliente ?? "");
+  const [produto, setProduto] = useState(inicial?.produto ?? proposta?.produto ?? "");
+  const [cidade, setCidade] = useState(inicial?.cidade ?? proposta?.cidade ?? "");
   const [socio, setSocio] = useState(inicial?.socio ?? "");
 
   // Calculadora de comissão: VGV + percentuais (padrão das configurações)
-  const [vgv, setVgv] = useState(paraCampo(inicial?.vgv));
+  const [vgv, setVgv] = useState(paraCampo(inicial?.vgv ?? proposta?.vgv));
   const [comissaoPct, setComissaoPct] = useState(pct(inicial?.comissao_percent ?? config.comissao_percent));
   const [splitPct, setSplitPct] = useState(pct(inicial?.split_empresa_percent ?? config.split_empresa_percent));
   const [impostoPct, setImpostoPct] = useState(pct(inicial?.imposto_nf_percent ?? config.imposto_nf_percent));
@@ -154,9 +160,16 @@ export function FormLancamento({ inicial }: { inicial?: Lancamento }) {
     try {
       const l = montar();
       if (inicial) await atualizarLancamento(inicial.id, l);
-      else await criarLancamento(l);
+      else {
+        const id = await criarLancamento(l);
+        if (proposta && l.categoria === COMISSAO) {
+          await atualizarProposta(proposta.id, { status: "fechada", encerrada_em: l.data, lancamento_id: id, motivo_perda: null });
+        }
+      }
       await recarregar();
-      if (continuar) {
+      if (proposta) {
+        router.push("/propostas/");
+      } else if (continuar) {
         // Mantém tipo, categoria, data e origem para lançar em sequência.
         setValor("");
         setVgv("");
@@ -405,9 +418,9 @@ export function FormLancamento({ inicial }: { inicial?: Lancamento }) {
 
       <div className="form__rodape">
         <button className="btn btn--primario" type="submit" value="salvar" disabled={salvando}>
-          {salvando ? "Salvando…" : inicial ? "Salvar alterações" : "Salvar lançamento"}
+          {salvando ? "Salvando…" : inicial ? "Salvar alterações" : proposta ? "Salvar venda e fechar proposta" : "Salvar lançamento"}
         </button>
-        {!inicial && (
+        {!inicial && !proposta && (
           <button className="btn" type="submit" value="continuar" disabled={salvando}>
             Salvar e lançar outro
           </button>

@@ -21,6 +21,7 @@ const GRUPOS: { titulo: string; itens: { href: string; rotulo: string; icone: No
   {
     titulo: "Registros",
     itens: [
+      { href: "/propostas/", rotulo: "Propostas", icone: "propostas" },
       { href: "/lancamentos/", rotulo: "Lançamentos", icone: "lancamentos" },
       { href: "/exportar/", rotulo: "Exportação", icone: "exportar" },
     ],
@@ -66,7 +67,7 @@ export function Navegacao({ email }: { email: string }) {
   }, [aberta]);
 
   const ativa = (href: string) =>
-    href === "/" ? caminho === "/" : href === "/lancamentos/" ? caminho.startsWith(href) : caminho === href;
+    href === "/" ? caminho === "/" : href === "/lancamentos/" || href === "/propostas/" ? caminho.startsWith(href) : caminho === href;
 
   async function sair() {
     await supabase().auth.signOut();

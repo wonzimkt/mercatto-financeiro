@@ -3,9 +3,9 @@
  * Só funciona em desenvolvimento (NODE_ENV !== "production"); o build
  * publicado nunca entra neste modo. Nada aqui toca o Supabase.
  */
-import { listaMeses, mesAtual, somarMeses } from "@/lib/financeiro/datas";
+import { hojeISO, listaMeses, mesAtual, somarMeses } from "@/lib/financeiro/datas";
 import { calcularComissao } from "@/lib/financeiro/calculos";
-import type { Configuracoes, Lancamento, LancamentoEntrada, MetaAnual } from "@/lib/financeiro/tipos";
+import type { Configuracoes, Lancamento, LancamentoEntrada, MetaAnual, Proposta } from "@/lib/financeiro/tipos";
 
 export const MODO_DEMO = process.env.NODE_ENV !== "production" && process.env.NEXT_PUBLIC_DEMO === "1";
 
@@ -71,4 +71,19 @@ export function lancamentosDemo(): Lancamento[] {
       add({ ...base, tipo: "despesa", categoria: "Retirada de Sócios", valor: 8000, data: dia(28), socio: escolher(["Cris", "Leandro"]), origem_recurso: "Caixa" });
   }
   return ls;
+}
+
+export function propostasDemo(): Proposta[] {
+  const hoje = Date.parse(`${hojeISO()}T00:00:00Z`);
+  const dia = (atras: number) => new Date(hoje - atras * 86_400_000).toISOString().slice(0, 10);
+  const base = { cliente: null, cidade: null, observacao: null, encerrada_em: null, motivo_perda: null, lancamento_id: null, criado_em: "", atualizado_em: "" };
+  const lista: Omit<Proposta, "id">[] = [
+    { ...base, data: dia(3), vgv: 2_450_000, corretor: "Ana Paula", produto: "Torre Farol", cliente: "Família Rocha", cidade: "Balneário Camboriú", status: "negociacao" },
+    { ...base, data: dia(9), vgv: 1_180_000, corretor: "Bruno Reis", produto: "Brava Mar", cliente: "C. Menezes", cidade: "Itajaí", status: "negociacao" },
+    { ...base, data: dia(21), vgv: 3_900_000, corretor: "Carla Moura", produto: "Villa Brava", cidade: "Itajaí", status: "negociacao", observacao: "Contraproposta de 3,6 mi enviada" },
+    { ...base, data: dia(44), vgv: 890_000, corretor: "Ana Paula", produto: "Mirante Sul", cliente: "G. Tavares", cidade: "Itapema", status: "negociacao" },
+    { ...base, data: dia(60), vgv: 1_600_000, corretor: "Diego Lins", produto: "Maré Alta", status: "perdida", encerrada_em: dia(40), motivo_perda: "Cliente desistiu" },
+    { ...base, data: dia(75), vgv: 2_100_000, corretor: "Bruno Reis", produto: "Residencial Atlântico", status: "fechada", encerrada_em: dia(50) },
+  ];
+  return lista.map((p, i) => ({ ...p, id: `demo-p${i + 1}` }));
 }

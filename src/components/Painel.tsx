@@ -4,15 +4,16 @@ import { usePathname, useRouter } from "next/navigation";
 import { createContext, Suspense, useCallback, useContext, useEffect, useState } from "react";
 import { MarcaAcesso } from "@/components/Acesso";
 import { Navegacao } from "@/components/Navegacao";
-import { buscarConfiguracoes, buscarLancamentos, buscarMetas } from "@/lib/dados";
-import { CONFIG_DEMO, lancamentosDemo, METAS_DEMO, MODO_DEMO } from "@/lib/demo";
-import { CONFIG_PADRAO, type Configuracoes, type Lancamento, type MetaAnual } from "@/lib/financeiro/tipos";
+import { buscarConfiguracoes, buscarLancamentos, buscarMetas, buscarPropostas } from "@/lib/dados";
+import { CONFIG_DEMO, lancamentosDemo, METAS_DEMO, MODO_DEMO, propostasDemo } from "@/lib/demo";
+import { CONFIG_PADRAO, type Configuracoes, type Lancamento, type MetaAnual, type Proposta } from "@/lib/financeiro/tipos";
 import { destinoDaSessao, supabase } from "@/lib/supabase/cliente";
 
 interface DadosPainel {
   lancamentos: Lancamento[];
   config: Configuracoes;
   metas: MetaAnual[];
+  propostas: Proposta[];
   email: string;
   atualizadoEm: Date | null;
   recarregar: () => Promise<void>;
@@ -42,6 +43,7 @@ export function Painel({ children }: { children: React.ReactNode }) {
   const [lancamentos, setLancamentos] = useState<Lancamento[]>([]);
   const [config, setConfig] = useState<Configuracoes>(CONFIG_PADRAO);
   const [metas, setMetas] = useState<MetaAnual[]>([]);
+  const [propostas, setPropostas] = useState<Proposta[]>([]);
   const [email, setEmail] = useState("");
   const [atualizadoEm, setAtualizadoEm] = useState<Date | null>(null);
 
@@ -50,13 +52,20 @@ export function Painel({ children }: { children: React.ReactNode }) {
       setLancamentos(lancamentosDemo());
       setConfig(CONFIG_DEMO);
       setMetas(METAS_DEMO);
+      setPropostas((atual) => (atual.length ? atual : propostasDemo()));
       setAtualizadoEm(new Date());
       return;
     }
-    const [ls, cfg, mts] = await Promise.all([buscarLancamentos(), buscarConfiguracoes(), buscarMetas()]);
+    const [ls, cfg, mts, pps] = await Promise.all([
+      buscarLancamentos(),
+      buscarConfiguracoes(),
+      buscarMetas(),
+      buscarPropostas(),
+    ]);
     setLancamentos(ls);
     setConfig(cfg);
     setMetas(mts);
+    setPropostas(pps);
     setAtualizadoEm(new Date());
   }, []);
 
@@ -165,7 +174,7 @@ export function Painel({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <Contexto.Provider value={{ lancamentos, config, metas, email, atualizadoEm, recarregar }}>
+    <Contexto.Provider value={{ lancamentos, config, metas, propostas, email, atualizadoEm, recarregar }}>
       <div className="app">
         <Navegacao email={email} />
         <div className="app__main">
