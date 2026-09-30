@@ -3,20 +3,31 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState, type FormEvent } from "react";
 import { useDados } from "@/components/Painel";
-import { atualizarLancamento, atualizarProposta, criarLancamento, excluirLancamento } from "@/lib/dados";
+import {
+  atualizarLancamento,
+  atualizarProposta,
+  atualizarSerieDesde,
+  criarLancamento,
+  criarLancamentos,
+  excluirLancamento,
+  excluirSerieDesde,
+} from "@/lib/dados";
+import { gerarSerie, rotuloSerie } from "@/lib/financeiro/futuros";
 import { calcularComissao, valoresUsados } from "@/lib/financeiro/calculos";
-import { hojeISO, validaData } from "@/lib/financeiro/datas";
+import { hojeISO, nomeMes, somarMesesData, validaData } from "@/lib/financeiro/datas";
 import { lerValor, moeda, paraCampo } from "@/lib/financeiro/formato";
 import {
   CAIXA,
   CATEGORIAS,
   COMISSAO,
+  MESES_FIXO,
   RETIRADA,
   type Categoria,
   type Lancamento,
   type LancamentoEntrada,
   type Origem,
   type Proposta,
+  type Recorrencia,
   type Tipo,
 } from "@/lib/financeiro/tipos";
 
@@ -53,6 +64,12 @@ export function FormLancamento({ inicial, proposta }: { inicial?: Lancamento; pr
   const [splitPct, setSplitPct] = useState(pct(inicial?.split_empresa_percent ?? config.split_empresa_percent));
   const [impostoPct, setImpostoPct] = useState(pct(inicial?.imposto_nf_percent ?? config.imposto_nf_percent));
 
+  // Repetição (só em lançamentos novos que não são comissão)
+  const [repeticao, setRepeticao] = useState<"unica" | Recorrencia>("unica");
+  const [parcelas, setParcelas] = useState("2");
+  // Edição de uma ocorrência de série: aplicar também às seguintes
+  const [aplicarSeguintes, setAplicarSeguintes] = useState(false);
+
   const [erros, setErros] = useState<Erros>({});
   const [falha, setFalha] = useState("");
   const [salvando, setSalvando] = useState(false);
@@ -71,6 +88,14 @@ export function FormLancamento({ inicial, proposta }: { inicial?: Lancamento; pr
   );
 
   const ehDespesa = tipo === "despesa";
+  const podeRepetir = !inicial && !proposta && categoria !== COMISSAO;
+  const repete = podeRepetir && repeticao !== "unica";
+  const nParcelas = Number(parcelas);
+  const qtdOcorrencias = repeticao === "fixo" ? MESES_FIXO : nParcelas;
+  const naSerie = !!inicial?.serie_id;
+  const seguintes = naSerie
+    ? lancamentos.filter((l) => l.serie_id === inicial!.serie_id && l.data > inicial!.data).length
+    : 0;
   // Caixa primeiro, depois os aportadores ativos; mantém um inativo se já estiver neste lançamento.
   const opcoesPagador = [
     CAIXA,
@@ -123,6 +148,8 @@ export function FormLancamento({ inicial, proposta }: { inicial?: Lancamento; pr
       if (!cidade.trim()) e.cidade = "Obrigatório em comissões.";
     }
     if (ehRetirada && !socio.trim()) e.socio = "Informe o sócio.";
+    if (repete && repeticao === "parcelado" && !(Number.isInteger(nParcelas) && nParcelas >= 2 && nParcelas <= 120))
+      e.parcelas = "Entre 2 e 120 parcelas.";
     return e;
   }
 
@@ -147,6 +174,11 @@ export function FormLancamento({ inicial, proposta }: { inicial?: Lancamento; pr
       split_empresa_percent: ehComissao ? splitNum : null,
       imposto_nf_percent: ehComissao ? impostoNum : null,
       imposto_nf: ehComissao && calculo ? calculo.impostoNf : null,
+      // Na edição, a ocorrência continua na sua série; lançamentos novos são avulsos (a série é gerada ao salvar).
+      serie_id: inicial?.serie_id ?? null,
+      recorrencia: inicial?.recorrencia ?? null,
+      parcela: inicial?.parcela ?? null,
+      parcelas_total: inicial?.parcelas_total ?? null,
     };
   }
 
@@ -164,8 +196,25 @@ export function FormLancamento({ inicial, proposta }: { inicial?: Lancamento; pr
     setSalvando(true);
     try {
       const l = montar();
-      if (inicial) await atualizarLancamento(inicial.id, l);
-      else {
+      let destino = l.data > hojeISO() ? "/futuros/" : "/lancamentos/";
+      let resumo = `Lançamento de ${moeda(l.valor)} (${l.categoria}) registrado.`;
+      if (inicial) {
+        await atualizarLancamento(inicial.id, l);
+        if (naSerie && aplicarSeguintes && seguintes > 0) {
+          const { tipo: tp, categoria: ct, valor: vl, descricao: ds, origem_recurso: og, item_custo: it, socio: sc } = l;
+          await atualizarSerieDesde(inicial.serie_id!, inicial.data, {
+            tipo: tp, categoria: ct, valor: vl, descricao: ds, origem_recurso: og, item_custo: it, socio: sc,
+          });
+        }
+      } else if (repete) {
+        const serie = gerarSerie(l, repeticao as Recorrencia, qtdOcorrencias, crypto.randomUUID());
+        await criarLancamentos(serie);
+        destino = "/futuros/";
+        resumo =
+          repeticao === "fixo"
+            ? `${l.item_custo || l.categoria}: ${moeda(l.valor)} por mês agendado até ${nomeMes(serie[serie.length - 1].data.slice(0, 7))}.`
+            : `${serie.length} parcelas de ${moeda(l.valor)} registradas.`;
+      } else {
         const id = await criarLancamento(l);
         if (proposta && l.categoria === COMISSAO) {
           await atualizarProposta(proposta.id, { status: "fechada", encerrada_em: l.data, lancamento_id: id, motivo_perda: null });
@@ -182,9 +231,9 @@ export function FormLancamento({ inicial, proposta }: { inicial?: Lancamento; pr
         setCliente("");
         setProduto("");
         setItemCusto("");
-        setSalvoAgora(`Lançamento de ${moeda(l.valor)} (${l.categoria}) registrado.`);
+        setSalvoAgora(resumo);
       } else {
-        router.push("/lancamentos/");
+        router.push(destino);
       }
     } catch (err) {
       setFalha(err instanceof Error ? err.message : String(err));
@@ -193,12 +242,16 @@ export function FormLancamento({ inicial, proposta }: { inicial?: Lancamento; pr
     }
   }
 
-  async function excluir() {
+  async function excluir(comSeguintes = false) {
     if (!inicial) return;
-    if (!confirm(`Excluir definitivamente este lançamento de ${moeda(inicial.valor)}? Não dá para desfazer.`)) return;
+    const pergunta = comSeguintes
+      ? `Excluir esta ocorrência e as ${seguintes} seguintes da série? Não dá para desfazer.`
+      : `Excluir definitivamente este lançamento de ${moeda(inicial.valor)}? Não dá para desfazer.`;
+    if (!confirm(pergunta)) return;
     setSalvando(true);
     try {
-      await excluirLancamento(inicial.id);
+      if (comSeguintes) await excluirSerieDesde(inicial.serie_id!, inicial.data);
+      else await excluirLancamento(inicial.id);
       await recarregar();
       router.push("/lancamentos/");
     } catch (err) {
@@ -395,7 +448,7 @@ export function FormLancamento({ inicial, proposta }: { inicial?: Lancamento; pr
 
       {!ehComissao && (
         <div className="campo">
-          <label htmlFor="valor">Valor (R$)</label>
+          <label htmlFor="valor">{repete && repeticao === "parcelado" ? "Valor de cada parcela (R$)" : repete ? "Valor mensal (R$)" : "Valor (R$)"}</label>
           <input
             id="valor"
             className="num"
@@ -406,6 +459,70 @@ export function FormLancamento({ inicial, proposta }: { inicial?: Lancamento; pr
             aria-invalid={erros.valor ? true : undefined}
           />
           {erros.valor && <span className="campo__erro">{erros.valor}</span>}
+        </div>
+      )}
+
+      {podeRepetir && (
+        <fieldset className="campo campo--largo">
+          <legend>Repetição</legend>
+          <div className="segmentos segmentos--quebra">
+            {(
+              [
+                ["unica", "Única"],
+                ["fixo", "Fixo mensal"],
+                ["parcelado", "Parcelado"],
+              ] as const
+            ).map(([v, r]) => (
+              <label key={v}>
+                <input type="radio" name="repeticao" checked={repeticao === v} onChange={() => setRepeticao(v)} />
+                {r}
+              </label>
+            ))}
+          </div>
+          {repeticao === "parcelado" && (
+            <div className="form-linha" style={{ marginTop: 10 }}>
+              <div className="campo" style={{ maxWidth: 180 }}>
+                <label htmlFor="parcelas">Número de parcelas</label>
+                <input
+                  id="parcelas"
+                  className="num"
+                  inputMode="numeric"
+                  value={parcelas}
+                  onChange={(e) => setParcelas(e.target.value.replace(/\D/g, ""))}
+                  aria-invalid={erros.parcelas ? true : undefined}
+                />
+              </div>
+            </div>
+          )}
+          {erros.parcelas && <span className="campo__erro">{erros.parcelas}</span>}
+          {repete && validaData(data) && (
+            <span className="campo__ajuda">
+              {repeticao === "fixo"
+                ? `Todo mês no dia ${Number(data.slice(8, 10))}, de ${nomeMes(data.slice(0, 7), "curto")} a ${nomeMes(
+                    somarMesesData(data, MESES_FIXO - 1).slice(0, 7),
+                    "curto",
+                  )} (${MESES_FIXO} meses). Na aba Futuros dá para estender ou encerrar.`
+                : Number.isInteger(nParcelas) && nParcelas >= 2
+                  ? `${nParcelas} parcelas mensais de ${nomeMes(data.slice(0, 7), "curto")} a ${nomeMes(
+                      somarMesesData(data, nParcelas - 1).slice(0, 7),
+                      "curto",
+                    )}${lerValor(valor) > 0 ? ` · total ${moeda(lerValor(valor) * nParcelas)}` : ""}.`
+                  : ""}
+            </span>
+          )}
+        </fieldset>
+      )}
+
+      {naSerie && (
+        <div className="aviso campo--largo">
+          <strong>{rotuloSerie(inicial!)}</strong> · esta ocorrência faz parte de uma série.
+          {seguintes > 0 && (
+            <label className="caixa-selecao" style={{ display: "flex", marginTop: 8 }}>
+              <input type="checkbox" checked={aplicarSeguintes} onChange={(e) => setAplicarSeguintes(e.target.checked)} />
+              Aplicar as alterações também às {seguintes} {seguintes === 1 ? "ocorrência seguinte" : "ocorrências seguintes"}{" "}
+              (valor, categoria, quem pagou, custo e observação; as datas não mudam)
+            </label>
+          )}
         </div>
       )}
 
@@ -438,9 +555,16 @@ export function FormLancamento({ inicial, proposta }: { inicial?: Lancamento; pr
           Cancelar
         </button>
         {inicial && (
-          <button className="btn btn--perigo" type="button" onClick={excluir} disabled={salvando} style={{ marginLeft: "auto" }}>
-            Excluir
-          </button>
+          <span style={{ marginLeft: "auto", display: "inline-flex", gap: 8, flexWrap: "wrap" }}>
+            <button className="btn btn--perigo" type="button" onClick={() => excluir()} disabled={salvando}>
+              {naSerie ? "Excluir esta" : "Excluir"}
+            </button>
+            {naSerie && seguintes > 0 && (
+              <button className="btn btn--perigo" type="button" onClick={() => excluir(true)} disabled={salvando}>
+                Excluir esta e as próximas
+              </button>
+            )}
+          </span>
         )}
         {salvoAgora && (
           <span className="pos" role="status" style={{ fontSize: 14 }}>

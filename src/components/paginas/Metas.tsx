@@ -1,13 +1,16 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { NavegadorMes, useMesSelecionado } from "@/components/Filtros";
 import { GraficoMeta, GraficoProjecao } from "@/components/graficos/Graficos";
 import { CabecalhoPagina, Figura, Figuras, Medidor, ROTULO_FONTE, Secao, Valor } from "@/components/ui";
 import { useDados } from "@/components/Painel";
 import { salvarMeta } from "@/lib/dados";
+import { agendaFutura } from "@/lib/financeiro/futuros";
 import {
   agregarPorMes,
+  caixaAgora,
   MIN_MESES_HISTORICO,
   MIN_VENDAS_HISTORICO,
   pontoEquilibrio,
@@ -157,6 +160,12 @@ export function Metas() {
   const pe = useMemo(() => pontoEquilibrio(ls, config, mes, corrente), [ls, config, mes, corrente]);
   const doMes = useMemo(() => agregarPorMes(ls).get(mes), [ls, mes]);
   const proj = useMemo(() => projecao(ls, config, corrente), [ls, config, corrente]);
+  // O que já está lançado para cada mês projetado (entradas − saídas do caixa)
+  const agendado = useMemo(() => {
+    const hoje = hojeISO();
+    const a = agendaFutura(ls, caixaAgora(ls, config, hoje), hoje, null);
+    return new Map(a.meses.map((m) => [m.mes, m]));
+  }, [ls, config]);
 
   const realizados = useMemo(() => serieMensal(ls, config, ultimosMeses(corrente, 6)), [ls, config, corrente]);
   const dadosProjecao = [
@@ -288,7 +297,12 @@ export function Metas() {
             : proj.base.fonte === "estimado"
               ? "Sem meses encerrados com lançamentos: projeção prudente com o custo fixo estimado e nenhuma receita."
               : "Sem histórico nem custo estimado — a projeção fica plana."}{" "}
-          Ponto de partida: caixa de {moeda(proj.saldoPartida)} ao fim de {nomeMes(corrente)}.
+          Ponto de partida: caixa de {moeda(proj.saldoPartida)} ao fim de {nomeMes(corrente)}. &ldquo;Já lançado&rdquo; é o
+          saldo do que já está registrado para o mês (entradas − saídas do caixa); o detalhe fica em{" "}
+          <Link className="link" href="/futuros/">
+            Lançamentos futuros
+          </Link>
+          .
         </p>
         <div className="colunas" style={{ marginTop: 16 }}>
           <GraficoProjecao dados={dadosProjecao} />
@@ -300,6 +314,7 @@ export function Metas() {
                   <th className="num">Entradas</th>
                   <th className="num">Saídas</th>
                   <th className="num">Caixa projetado</th>
+                  <th className="num">Já lançado</th>
                 </tr>
               </thead>
               <tbody>
@@ -310,6 +325,13 @@ export function Metas() {
                     <td className="num">{moeda(p.saida)}</td>
                     <td className="num">
                       <Valor v={p.caixa} tom="auto" />
+                    </td>
+                    <td className="num muted">
+                      {agendado.get(p.mes) ? (
+                        <Valor v={agendado.get(p.mes)!.entradas - agendado.get(p.mes)!.saidasCaixa} sinal />
+                      ) : (
+                        "—"
+                      )}
                     </td>
                   </tr>
                 ))}

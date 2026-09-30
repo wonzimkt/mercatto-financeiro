@@ -52,6 +52,12 @@ export const PAGADORES_PADRAO: Pagador[] = [
   { nome: "Valor Marketing", ativo: true, ordem: 4 },
 ];
 
+/** fixo = todo mês (ex.: aluguel); parcelado = N parcelas mensais. */
+export type Recorrencia = "fixo" | "parcelado";
+
+/** Quantos meses um lançamento fixo é agendado de cada vez. */
+export const MESES_FIXO = 12;
+
 export interface Lancamento {
   id: string;
   tipo: Tipo;
@@ -79,6 +85,12 @@ export interface Lancamento {
   split_empresa_percent: number | null;
   imposto_nf_percent: number | null;
   imposto_nf: number | null;
+  /** Séries (lançamentos que se repetem): mesmo serie_id em todas as ocorrências. */
+  serie_id: string | null;
+  recorrencia: Recorrencia | null;
+  parcela: number | null;
+  /** Só em parcelados; fixos não têm fim definido. */
+  parcelas_total: number | null;
   criado_por: string | null;
   criado_em: string;
   atualizado_em: string;
@@ -131,6 +143,10 @@ export function normalizarLancamento(l: Record<string, unknown>): Lancamento {
     imposto_nf: num(l.imposto_nf),
     origem_recurso: (l.origem_recurso as Origem | null) ?? null,
     item_custo: (l.item_custo as string | null) ?? null,
+    serie_id: (l.serie_id as string | null) ?? null,
+    recorrencia: (l.recorrencia as Recorrencia | null) ?? null,
+    parcela: num(l.parcela),
+    parcelas_total: num(l.parcelas_total),
   };
 }
 

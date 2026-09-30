@@ -33,6 +33,16 @@ export function somarMeses(chave: string, n: number): string {
   return `${Math.floor(total / 12)}-${dois((total % 12) + 1)}`;
 }
 
+/**
+ * Soma meses a uma data AAAA-MM-DD mantendo o dia; se o mês não tiver esse
+ * dia, usa o último (31/01 + 1 mês = 28/02 ou 29/02).
+ */
+export function somarMesesData(data: string, n: number): string {
+  const mes = somarMeses(chaveMes(data), n);
+  const dia = Math.min(Number(data.slice(8, 10)), Number(ultimoDia(mes).slice(8, 10)));
+  return `${mes}-${dois(dia)}`;
+}
+
 export function primeiroDia(chave: string): string {
   return `${chave}-01`;
 }

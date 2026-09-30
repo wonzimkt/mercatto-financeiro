@@ -23,6 +23,7 @@ const GRUPOS: { titulo: string; itens: { href: string; rotulo: string; icone: No
     itens: [
       { href: "/propostas/", rotulo: "Propostas", icone: "propostas" },
       { href: "/lancamentos/", rotulo: "Lançamentos", icone: "lancamentos" },
+      { href: "/futuros/", rotulo: "Lançamentos futuros", icone: "calendario" },
       { href: "/exportar/", rotulo: "Exportação", icone: "exportar" },
     ],
   },

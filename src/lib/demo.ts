@@ -5,6 +5,7 @@
  */
 import { hojeISO, listaMeses, mesAtual, somarMeses } from "@/lib/financeiro/datas";
 import { calcularComissao } from "@/lib/financeiro/calculos";
+import { gerarSerie } from "@/lib/financeiro/futuros";
 import type { Configuracoes, Lancamento, LancamentoEntrada, MetaAnual, Proposta } from "@/lib/financeiro/tipos";
 
 export const MODO_DEMO = process.env.NODE_ENV !== "production" && process.env.NEXT_PUBLIC_DEMO === "1";
@@ -37,6 +38,7 @@ export function lancamentosDemo(): Lancamento[] {
     descricao: null, corretor: null, cliente: null, produto: null, cidade: null, socio: null, item_custo: null,
     vgv: null, comissao_percent: null, comissao_bruta: null, split_empresa_percent: null,
     imposto_nf_percent: null, imposto_nf: null,
+    serie_id: null, recorrencia: null, parcela: null, parcelas_total: null,
   };
 
   const fim = mesAtual();
@@ -73,6 +75,13 @@ export function lancamentosDemo(): Lancamento[] {
     if (comissoes > 20000)
       add({ ...base, tipo: "despesa", categoria: "Retirada de Sócios", valor: 8000, data: dia(28), socio: escolher(["Cris", "Leandro"]), origem_recurso: "Caixa" });
   }
+  // Futuros: aluguel fixo, mobiliário parcelado e uma receita avulsa
+  const proximoMes = `${somarMeses(fim, 1)}-05`;
+  for (const l of gerarSerie({ ...base, tipo: "despesa", categoria: "Custo Fixo", valor: 9800, data: proximoMes, item_custo: "Aluguel", origem_recurso: "Caixa", descricao: "Sala comercial" }, "fixo", 3, "demo-aluguel"))
+    add(l);
+  for (const l of gerarSerie({ ...base, tipo: "despesa", categoria: "Outro", valor: 1450, data: `${somarMeses(fim, 1)}-15`, item_custo: "Mobiliário", origem_recurso: "Leandro", descricao: "Mesas e cadeiras" }, "parcelado", 6, "demo-mobiliario"))
+    add(l);
+  add({ ...base, tipo: "receita", categoria: "Outra Receita", valor: 3200, data: `${somarMeses(fim, 1)}-20`, origem_recurso: null, descricao: "Taxa de administração" });
   return ls;
 }
 

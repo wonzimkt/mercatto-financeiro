@@ -43,7 +43,7 @@ const eixoY = {
   tick: { fill: "var(--viz-axis)", fontSize: 12 },
   axisLine: false,
   tickLine: false,
-  width: 76,
+  width: 86,
   tickFormatter: (v: number) => moedaCompacta(v),
 };
 
@@ -196,7 +196,7 @@ export function GraficoLinha({
       <LineChart data={dados} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
         {grade}
         <XAxis dataKey="mes" tickFormatter={rotuloMes} {...eixoX} hide={compacto} />
-        <YAxis {...eixoY} width={compacto ? 56 : 76} tickCount={compacto ? 3 : 5} />
+        <YAxis {...eixoY} width={compacto ? 64 : 86} tickCount={compacto ? 3 : 5} />
         <Tooltip
           cursor={{ stroke: "var(--border-strong)", strokeWidth: 1 }}
           content={(p) => (

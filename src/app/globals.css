@@ -692,6 +692,25 @@ table.tabela {
   margin-top: 1px;
 }
 
+/* Linha de agrupamento (ex.: mês na agenda de futuros) */
+.tabela tr.tabela__grupo td {
+  background: var(--surface-2);
+  padding: 8px 12px;
+  font-size: 13.5px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+}
+.tabela tr.tabela__grupo td > span:first-child::first-letter {
+  text-transform: uppercase;
+}
+.tabela tr.tabela__grupo td .muted {
+  font-weight: 400;
+  margin-left: 10px;
+}
+.tabela tbody tr.tabela__grupo:hover td {
+  background: var(--surface-2);
+}
+
 .tabela .secundario.neg {
   color: var(--neg);
   font-weight: 500;
@@ -1209,6 +1228,10 @@ fieldset.campo {
 .selo--negociacao {
   background: var(--accent-soft);
   color: var(--accent);
+}
+.selo--alerta {
+  background: var(--neg-soft);
+  color: var(--neg);
 }
 .selo--fechada {
   background: var(--pos-soft);

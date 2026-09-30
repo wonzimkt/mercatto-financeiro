@@ -6,6 +6,7 @@ import { FiltroPeriodo, usePeriodo } from "@/components/Filtros";
 import { CabecalhoPagina, Secao, Valor } from "@/components/ui";
 import { useDados } from "@/components/Painel";
 import { comSinal, noPeriodo } from "@/lib/financeiro/calculos";
+import { rotuloSerie } from "@/lib/financeiro/futuros";
 import { dataBR, moeda } from "@/lib/financeiro/formato";
 import { CATEGORIAS_DESPESA, CATEGORIAS_RECEITA, type Lancamento } from "@/lib/financeiro/tipos";
 
@@ -130,6 +131,12 @@ export function Lancamentos() {
                     <td className="num">{dataBR(l.data)}</td>
                     <td>
                       {titulo(l) || <span className="muted">—</span>}
+                      {rotuloSerie(l) && (
+                        <>
+                          {" "}
+                          <span className="selo">{rotuloSerie(l)}</span>
+                        </>
+                      )}
                       {detalhes(l) && <span className="secundario">{detalhes(l)}</span>}
                     </td>
                     <td>{l.categoria}</td>

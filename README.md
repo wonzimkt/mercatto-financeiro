@@ -45,6 +45,7 @@ supabase/
   migrations/…_vgv_metas_itens.sql VGV/imposto NF, origem só em despesas, item de custo, metas anuais
   migrations/…_propostas.sql      propostas em negociação (fora do financeiro)
   migrations/…_pagadores_links.sql pagadores editáveis (aportes) e links de visualização
+  migrations/…_series.sql          séries de lançamentos (fixo mensal / parcelado)
   functions/convidar-usuario/     Edge Function de convite (única que usa a service role)
   templates/                      e-mails de convite e de redefinição de senha
 src/
@@ -211,6 +212,13 @@ Todas em `src/lib/financeiro/calculos.ts`, cobertas por testes.
     `comissao_media_esperada` das configurações. A tela sempre informa de onde veio cada número.
 - **Meta de vendas**: meta anual de **VGV vendido** (tabela `metas_anuais`), editada na aba Metas. Alcançado = soma
   do VGV das vendas do ano; o ritmo compara com a meta proporcional aos dias já passados do ano.
+- **Lançamentos futuros** são lançamentos normais com data à frente: entram no financeiro no mês de cada um. Ao
+  lançar, a **Repetição** pode ser *Única*, *Fixo mensal* (ex.: aluguel — agenda 12 meses, com botões para
+  estender ou encerrar) ou *Parcelado* (N parcelas mensais). As ocorrências de uma série compartilham `serie_id`; ao
+  editar uma, dá para aplicar a mudança às seguintes, e excluir uma ou ela e as próximas. As datas saem sempre da
+  primeira ocorrência (dia 31 volta a ser 31 depois de fevereiro). A aba mostra a agenda mês a mês com o caixa
+  previsto após cada lançamento (aportes não mexem no caixa); a projeção da aba Metas mostra também o que já está
+  lançado em cada mês.
 - **Propostas** (tabela `propostas`) acompanham as negociações e **não entram no financeiro**. Quando a venda
   se concretiza (NF emitida), o botão "Registrar venda" abre o lançamento de comissão já preenchido; ao salvar, a
   proposta vira "fechada" e passa a apontar para o lançamento. Propostas perdidas guardam data e motivo. A aba mostra
