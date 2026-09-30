@@ -7,7 +7,7 @@ import { CabecalhoPagina, Secao, Valor } from "@/components/ui";
 import { useDados } from "@/components/Painel";
 import { comSinal, noPeriodo } from "@/lib/financeiro/calculos";
 import { dataBR, moeda } from "@/lib/financeiro/formato";
-import { CATEGORIAS_DESPESA, CATEGORIAS_RECEITA, ORIGENS, type Lancamento } from "@/lib/financeiro/tipos";
+import { CATEGORIAS_DESPESA, CATEGORIAS_RECEITA, type Lancamento } from "@/lib/financeiro/tipos";
 
 function titulo(l: Lancamento): string {
   if (l.cliente || l.produto) return [l.cliente, l.produto].filter(Boolean).join(" · ");
@@ -24,7 +24,7 @@ function detalhes(l: Lancamento): string {
 }
 
 export function Lancamentos() {
-  const { lancamentos: ls } = useDados();
+  const { lancamentos: ls, pagadores } = useDados();
   const periodo = usePeriodo();
   const [tipo, setTipo] = useState<"" | "receita" | "despesa">("");
   const [categoria, setCategoria] = useState("");
@@ -102,8 +102,8 @@ export function Lancamentos() {
             <label htmlFor="f-origem">Quem pagou</label>
             <select id="f-origem" value={origem} onChange={(e) => setOrigem(e.target.value)}>
               <option value="">Todas</option>
-              {ORIGENS.map((o) => (
-                <option key={o}>{o}</option>
+              {pagadores.map((p) => (
+                <option key={p.nome}>{p.nome}</option>
               ))}
             </select>
           </div>

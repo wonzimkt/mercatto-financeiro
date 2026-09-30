@@ -5,7 +5,14 @@ import { FiltroPeriodo, usePeriodo } from "@/components/Filtros";
 import { GraficoOrigens } from "@/components/graficos/Graficos";
 import { Barras, CabecalhoPagina, Figura, Figuras, Secao, Valor } from "@/components/ui";
 import { useDados } from "@/components/Painel";
-import { agruparPor, ehRetirada, mesesDoHistorico, retiradasNoPeriodo, serieMensal } from "@/lib/financeiro/calculos";
+import {
+  agruparPor,
+  aportesPorPessoa,
+  ehRetirada,
+  mesesDoHistorico,
+  retiradasNoPeriodo,
+  serieMensal,
+} from "@/lib/financeiro/calculos";
 import { chaveMes } from "@/lib/financeiro/datas";
 import { dataBR, moeda } from "@/lib/financeiro/formato";
 
@@ -14,6 +21,7 @@ export function Socios() {
   const periodo = usePeriodo();
 
   const doPeriodo = useMemo(() => retiradasNoPeriodo(ls, periodo.inicio, periodo.fim), [ls, periodo]);
+  const aportes = useMemo(() => aportesPorPessoa(ls, periodo.inicio, periodo.fim), [ls, periodo]);
   const porSocio = useMemo(() => agruparPor(doPeriodo, "socio"), [doPeriodo]);
   const historico = useMemo(
     () => ls.filter(ehRetirada).sort((a, b) => (a.data < b.data ? 1 : a.data > b.data ? -1 : 0)),
@@ -25,7 +33,7 @@ export function Socios() {
       serieMensal(ls, config, mesesDoHistorico(ls, chaveMes(periodo.fim), 12)).map((p) => ({
         mes: p.mes,
         Caixa: p.caixa,
-        Cris: p.bancadoCris,
+        Cris: p.aportado,
       })),
     [ls, config, periodo.fim],
   );
@@ -36,7 +44,7 @@ export function Socios() {
 
   return (
     <main className="pagina">
-      <CabecalhoPagina titulo="Sócios & retiradas" descricao={periodo.rotulo}>
+      <CabecalhoPagina titulo="Sócios, retiradas & aportes" descricao={periodo.rotulo}>
         <FiltroPeriodo />
       </CabecalhoPagina>
 
@@ -65,14 +73,56 @@ export function Socios() {
         </div>
       </Secao>
 
-      <Secao titulo="Caixa e valores bancados pela Cris" nota="ao fim de cada mês">
+      <Secao titulo="Caixa e aportes" nota="ao fim de cada mês">
         <Figuras>
           <Figura rotulo="Caixa da empresa" valor={ultimo?.Caixa ?? 0} tom="auto" />
-          <Figura rotulo="Total bancado pela Cris" valor={ultimo?.Cris ?? 0} rodape={<span>despesas pagas pela Cris, que não saíram do caixa</span>} />
+          <Figura rotulo="Total aportado" valor={ultimo?.Cris ?? 0} rodape={<span>despesas pagas por aportadores, que não saíram do caixa</span>} />
         </Figuras>
         <div style={{ marginTop: 16 }}>
           <GraficoOrigens dados={origens} />
         </div>
+      </Secao>
+
+      <Secao titulo="Aportes por pessoa" nota="despesas pagas fora do caixa">
+        {aportes.length ? (
+          <div className="tabela-wrap">
+            <table className="tabela">
+              <thead>
+                <tr>
+                  <th>Aportador</th>
+                  <th className="num">No período</th>
+                  <th className="num">Lançamentos no período</th>
+                  <th className="num">Total histórico</th>
+                </tr>
+              </thead>
+              <tbody>
+                {aportes.map((a) => (
+                  <tr key={a.nome}>
+                    <td>
+                      {a.nome}
+                      <span className="fatia" aria-hidden>
+                        <span style={{ width: `${(a.total / aportes[0].total) * 100}%` }} />
+                      </span>
+                    </td>
+                    <td className="num">{moeda(a.periodo)}</td>
+                    <td className="num">{a.qtd}</td>
+                    <td className="num">{moeda(a.total)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td>Total</td>
+                  <td className="num">{moeda(aportes.reduce((s, a) => s + a.periodo, 0))}</td>
+                  <td className="num">{aportes.reduce((s, a) => s + a.qtd, 0)}</td>
+                  <td className="num">{moeda(aportes.reduce((s, a) => s + a.total, 0))}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        ) : (
+          <p className="vazio">Nenhuma despesa paga por aportadores ainda.</p>
+        )}
       </Secao>
 
       <Secao titulo="Histórico completo de retiradas" nota={`${historico.length} registros`}>

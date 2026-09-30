@@ -18,7 +18,7 @@ import { hojeISO, mesAtual, nomeMes, primeiroDia, somarMeses, ultimoDia, ultimos
 import { dataBR, moeda, moedaCompacta, num, percentual } from "@/lib/financeiro/formato";
 
 export function VisaoGeral() {
-  const { lancamentos: ls, config, metas, propostas } = useDados();
+  const { lancamentos: ls, config, metas, propostas, somenteLeitura } = useDados();
   const mes = useMesSelecionado();
   const corrente = mesAtual();
   const hoje = hojeISO();
@@ -42,7 +42,9 @@ export function VisaoGeral() {
         <NavegadorMes />
       </CabecalhoPagina>
 
-      {ls.length === 0 && (
+      {ls.length === 0 && somenteLeitura && <p className="aviso">Ainda não há lançamentos registrados.</p>}
+
+      {ls.length === 0 && !somenteLeitura && (
         <p className="aviso">
           Ainda não há lançamentos. Comece pelas{" "}
           <Link className="link" href="/configuracoes/">
@@ -107,8 +109,14 @@ export function VisaoGeral() {
             </tfoot>
           </table>
           <p className="campo__ajuda" style={{ margin: "12px 0 0" }}>
-            Pago pela Cris no mês: <strong>{moeda(atual.despesaCris)}</strong> (não sai do caixa). Total já bancado pela Cris:{" "}
-            <strong>{moeda(caixa.bancadoCris)}</strong>.
+            Aportes no mês: <strong>{moeda(atual.aportes)}</strong>
+            {Object.keys(atual.aportesPor).length > 0 &&
+              ` (${Object.entries(atual.aportesPor)
+                .sort((a, b) => b[1] - a[1])
+                .map(([nome, v]) => `${nome} ${moedaCompacta(v)}`)
+                .join(" · ")})`}{" "}
+            — despesas pagas por aportadores não saem do caixa. Total aportado até hoje:{" "}
+            <strong>{moeda(caixa.aportado)}</strong>.
             {caixa.aVencer !== 0 && <> Lançamentos com data futura: {moeda(caixa.aVencer)}.</>}
           </p>
         </Secao>
@@ -116,9 +124,11 @@ export function VisaoGeral() {
         <Secao
           titulo={`Meta de vendas ${ano}`}
           nota={
-            <Link className="link" href={`/metas/?mes=${mes}`}>
-              {meta ? "Detalhar" : "Definir meta"}
-            </Link>
+            !somenteLeitura && (
+              <Link className="link" href={`/metas/?mes=${mes}`}>
+                {meta ? "Detalhar" : "Definir meta"}
+              </Link>
+            )
           }
         >
           {meta ? (
@@ -148,9 +158,15 @@ export function VisaoGeral() {
               {abertas.length > 0 && (
                 <p className="campo__ajuda" style={{ margin: "6px 0 0" }}>
                   Em negociação:{" "}
-                  <Link className="link" href="/propostas/">
-                    {moedaCompacta(vgvNegociacao)} em {abertas.length} {abertas.length === 1 ? "proposta" : "propostas"}
-                  </Link>{" "}
+                  {somenteLeitura ? (
+                    <strong>
+                      {moedaCompacta(vgvNegociacao)} em {abertas.length} {abertas.length === 1 ? "proposta" : "propostas"}
+                    </strong>
+                  ) : (
+                    <Link className="link" href="/propostas/">
+                      {moedaCompacta(vgvNegociacao)} em {abertas.length} {abertas.length === 1 ? "proposta" : "propostas"}
+                    </Link>
+                  )}{" "}
                   (ainda fora do vendido).
                 </p>
               )}
@@ -158,9 +174,11 @@ export function VisaoGeral() {
           ) : (
             <p className="vazio">
               Nenhuma meta de VGV para {ano}.{" "}
-              <Link className="link" href={`/metas/?mes=${mes}`}>
-                Definir meta
-              </Link>
+              {!somenteLeitura && (
+                <Link className="link" href={`/metas/?mes=${mes}`}>
+                  Definir meta
+                </Link>
+              )}
             </p>
           )}
         </Secao>
@@ -169,9 +187,11 @@ export function VisaoGeral() {
       <Secao
         titulo="Ponto de equilíbrio"
         nota={
-          <Link className="link" href={`/metas/?mes=${mes}`}>
-            Detalhar
-          </Link>
+          !somenteLeitura && (
+            <Link className="link" href={`/metas/?mes=${mes}`}>
+              Detalhar
+            </Link>
+          )
         }
       >
         <Figuras>
@@ -221,7 +241,7 @@ export function VisaoGeral() {
                   <th>Mês</th>
                   <th className="num">Entradas</th>
                   <th className="num">Saídas do caixa</th>
-                  <th className="num">Pago pela Cris</th>
+                  <th className="num">Aportes</th>
                   <th className="num">Caixa no fim do mês</th>
                 </tr>
               </thead>
@@ -231,7 +251,7 @@ export function VisaoGeral() {
                     <td>{nomeMes(p.mes)}</td>
                     <td className="num">{moeda(p.receita)}</td>
                     <td className="num">{moeda(p.despesaCaixa)}</td>
-                    <td className="num muted">{moeda(p.despesaCris)}</td>
+                    <td className="num muted">{moeda(p.aportes)}</td>
                     <td className="num">
                       <Valor v={p.caixa} tom="auto" />
                     </td>

@@ -47,6 +47,9 @@ export function lancamentosDemo(): Lancamento[] {
     add({ ...base, tipo: "despesa", categoria: "Custo Fixo", valor: 1400, data: dia(10), item_custo: "Sistemas e CRM", origem_recurso: "Cris" });
     add({ ...base, tipo: "despesa", categoria: "Custo Fixo", valor: 900, data: dia(10), item_custo: "Contador", origem_recurso: "Caixa" });
     add({ ...base, tipo: "despesa", categoria: "Marketing", valor: 2500 + Math.round(aleatorio() * 4500), data: dia(12), item_custo: "Anúncios e portais", origem_recurso: "Caixa" });
+    add({ ...base, tipo: "despesa", categoria: "Marketing", valor: 1800, data: dia(14), item_custo: "Tráfego pago", origem_recurso: "Valor Marketing" });
+    if (aleatorio() > 0.5)
+      add({ ...base, tipo: "despesa", categoria: "Outro", valor: 400 + Math.round(aleatorio() * 900), data: dia(16), item_custo: "Deslocamentos", origem_recurso: escolher(["Leandro", "Geyson"]) });
     if (aleatorio() > 0.6)
       add({ ...base, tipo: "despesa", categoria: "Outro", valor: 600 + Math.round(aleatorio() * 2400), data: dia(18), item_custo: "Fotografia e tour 360", origem_recurso: "Cris" });
 

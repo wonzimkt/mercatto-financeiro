@@ -3,9 +3,9 @@
 import { useState, type FormEvent } from "react";
 import { CabecalhoPagina, Secao } from "@/components/ui";
 import { useDados } from "@/components/Painel";
-import { salvarConfiguracoes } from "@/lib/dados";
+import { atualizarPagador, criarPagador, salvarConfiguracoes } from "@/lib/dados";
 import { lerValor, paraCampo } from "@/lib/financeiro/formato";
-import type { Configuracoes as Cfg } from "@/lib/financeiro/tipos";
+import { CAIXA, type Configuracoes as Cfg } from "@/lib/financeiro/tipos";
 
 type Campo = keyof Omit<Cfg, "atualizado_em">;
 
@@ -126,6 +126,150 @@ export function Configuracoes() {
           </div>
         </form>
       </Secao>
+      <Pagadores />
     </main>
+  );
+}
+
+/** Quem pode pagar despesas. Só o Caixa mexe no caixa; os demais são aportes. */
+function Pagadores() {
+  const { pagadores, lancamentos, recarregar } = useDados();
+  const [novo, setNovo] = useState("");
+  const [editando, setEditando] = useState<string | null>(null);
+  const [nomeEditado, setNomeEditado] = useState("");
+  const [estado, setEstado] = useState<{ tipo: "ok" | "erro"; msg: string } | null>(null);
+  const [ocupado, setOcupado] = useState(false);
+
+  const usos = (nome: string) => lancamentos.filter((l) => l.origem_recurso === nome).length;
+
+  async function executar(acao: () => Promise<void>, msg: string) {
+    setOcupado(true);
+    setEstado(null);
+    try {
+      await acao();
+      await recarregar();
+      setEstado({ tipo: "ok", msg });
+      return true;
+    } catch (e) {
+      setEstado({ tipo: "erro", msg: e instanceof Error ? e.message : String(e) });
+      return false;
+    } finally {
+      setOcupado(false);
+    }
+  }
+
+  async function adicionar(ev: FormEvent) {
+    ev.preventDefault();
+    const nome = novo.trim();
+    if (!nome) return;
+    if (pagadores.some((p) => p.nome.toLocaleLowerCase("pt-BR") === nome.toLocaleLowerCase("pt-BR"))) {
+      setEstado({ tipo: "erro", msg: "Já existe alguém com esse nome." });
+      return;
+    }
+    const ordem = Math.max(0, ...pagadores.map((p) => p.ordem)) + 1;
+    if (await executar(() => criarPagador(nome, ordem), `${nome} adicionado.`)) setNovo("");
+  }
+
+  async function renomear(nome: string) {
+    const novoNome = nomeEditado.trim();
+    if (!novoNome || novoNome === nome) return setEditando(null);
+    if (await executar(() => atualizarPagador(nome, { nome: novoNome }), `Renomeado para ${novoNome}. Os lançamentos acompanham.`))
+      setEditando(null);
+  }
+
+  return (
+    <Secao titulo="Quem pode pagar despesas" nota="aparece em “Quem pagou”">
+      <p className="campo__ajuda" style={{ margin: "0 0 12px" }}>
+        Só o <strong>Caixa</strong> sai do caixa da empresa. Despesas pagas pelos demais contam no resultado, mas entram
+        como <strong>aporte</strong> e não mexem no caixa. Quem já tem despesas não pode ser excluído: desative para sumir
+        do formulário, mantendo o histórico.
+      </p>
+      <table className="tabela">
+        <tbody>
+          {pagadores.map((p) => (
+            <tr key={p.nome}>
+              <td>
+                {editando === p.nome ? (
+                  <form
+                    className="form-linha"
+                    onSubmit={(ev) => {
+                      ev.preventDefault();
+                      renomear(p.nome);
+                    }}
+                  >
+                    <div className="campo">
+                      <label htmlFor={`renomear-${p.nome}`} className="sr-only">
+                        Novo nome
+                      </label>
+                      <input id={`renomear-${p.nome}`} value={nomeEditado} onChange={(e) => setNomeEditado(e.target.value)} autoFocus />
+                    </div>
+                    <button className="btn btn--pequeno btn--primario" type="submit" disabled={ocupado}>
+                      Salvar
+                    </button>
+                    <button className="btn btn--pequeno btn--fantasma" type="button" onClick={() => setEditando(null)}>
+                      Cancelar
+                    </button>
+                  </form>
+                ) : (
+                  <>
+                    {p.nome}{" "}
+                    {p.nome === CAIXA ? (
+                      <span className="selo selo--negociacao">empresa · sai do caixa</span>
+                    ) : (
+                      !p.ativo && <span className="selo">inativo</span>
+                    )}
+                    <span className="secundario">
+                      {usos(p.nome)} {usos(p.nome) === 1 ? "despesa lançada" : "despesas lançadas"}
+                    </span>
+                  </>
+                )}
+              </td>
+              <td className="acoes">
+                {p.nome !== CAIXA && editando !== p.nome && (
+                  <>
+                    <button
+                      className="btn btn--pequeno btn--fantasma"
+                      onClick={() => {
+                        setEditando(p.nome);
+                        setNomeEditado(p.nome);
+                      }}
+                    >
+                      Renomear
+                    </button>{" "}
+                    <button
+                      className="btn btn--pequeno"
+                      disabled={ocupado}
+                      onClick={() =>
+                        executar(
+                          () => atualizarPagador(p.nome, { ativo: !p.ativo }),
+                          p.ativo ? `${p.nome} desativado.` : `${p.nome} reativado.`,
+                        )
+                      }
+                    >
+                      {p.ativo ? "Desativar" : "Reativar"}
+                    </button>
+                  </>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <form className="form-linha" onSubmit={adicionar} style={{ marginTop: 16 }}>
+        <div className="campo">
+          <label htmlFor="novo-pagador">Adicionar pessoa ou empresa</label>
+          <input id="novo-pagador" value={novo} onChange={(e) => setNovo(e.target.value)} placeholder="Ex.: Ana, Empresa X" />
+        </div>
+        <button className="btn" type="submit" disabled={ocupado || !novo.trim()}>
+          Adicionar
+        </button>
+      </form>
+      {estado && (
+        <p className={estado.tipo === "ok" ? "pos" : "neg"} role="status" style={{ fontSize: 14, margin: "10px 0 0" }}>
+          {estado.msg}
+        </p>
+      )}
+    </Secao>
   );
 }

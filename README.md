@@ -22,6 +22,7 @@ Por isso o app roda inteiro no navegador e fala direto com o Supabase usando a *
 | **Autorização de membros** | A marca `mercatto_membro` fica em `app_metadata`, que o próprio usuário não consegue alterar. Ela é dada pela Edge Function de convite ou por `select public.autorizar_membro('email')` no SQL Editor. Assim, mesmo que o cadastro público seja ligado por engano, uma conta criada por estranhos não acessa nada. |
 | **Sem cadastro público** | Cadastro desligado no Supabase. Contas são criadas pelo painel do Supabase ou pela tela de convite. |
 | **Porteiro no front** | `src/components/Painel.tsx` manda para login, para o código TOTP ou para o cadastro do autenticador. É a camada de experiência de uso: mesmo que alguém a contorne, o banco não entrega dados. |
+| **Links de visualização** | Única exceção ao login: a função `visao_compartilhada` (security definer) aceita um código secreto válido, não expirado e não revogado, e devolve só os dados mínimos da Visão geral. As tabelas continuam fechadas para `anon`. |
 | **Service role key** | **Nunca** vai para o site. Só a Edge Function `convidar-usuario` a usa, e o próprio Supabase a injeta lá. |
 | **Auditoria** | Triggers gravam `criado_por`, `criado_em` e `atualizado_em`; o navegador não consegue forjar esses campos. |
 
@@ -43,6 +44,7 @@ supabase/
   migrations/…_somente_membros.sql RLS passa a exigir também membro autorizado
   migrations/…_vgv_metas_itens.sql VGV/imposto NF, origem só em despesas, item de custo, metas anuais
   migrations/…_propostas.sql      propostas em negociação (fora do financeiro)
+  migrations/…_pagadores_links.sql pagadores editáveis (aportes) e links de visualização
   functions/convidar-usuario/     Edge Function de convite (única que usa a service role)
   templates/                      e-mails de convite e de redefinição de senha
 src/
@@ -193,10 +195,12 @@ Todas em `src/lib/financeiro/calculos.ts`, cobertas por testes.
   (50% da comissão = 2,5% do VGV) e split corretor (o restante) → imposto sobre a NF (6%, só sobre o split da
   Mercatto) → **líquido Mercatto**, que é o `valor` da receita. Os percentuais padrão ficam em Configurações e podem
   ser ajustados venda a venda; tudo fica gravado (`vgv`, `comissao_bruta`, `imposto_nf`…).
-- **Origem (Caixa/Cris) só existe em despesas.** Toda receita entra no caixa da empresa.
-- **Caixa** = saldo inicial + receitas − despesas pagas pelo Caixa. Despesas pagas pela Cris **não saem do caixa**
-  e são somadas à parte ("total bancado pela Cris"). "Caixa agora" considera só lançamentos com data até hoje.
-- **Resultado do mês** = receitas − todas as despesas (inclusive retiradas e as pagas pela Cris).
+- **Quem pagou** só existe em despesas; toda receita entra no caixa da empresa. A lista de pagadores fica na tabela
+  `pagadores` e é editável em Configurações (começa com Caixa, Cris, Leandro, Geyson e Valor Marketing).
+- **Caixa** = saldo inicial + receitas − despesas pagas pelo **Caixa**. Despesas pagas por qualquer outro pagador são
+  **aportes**: **não saem do caixa** e são somadas à parte, no total e por pessoa. "Caixa agora" considera só
+  lançamentos com data até hoje.
+- **Resultado do mês** = receitas − todas as despesas (inclusive retiradas e aportes).
 - **Qual custo**: despesas podem ter um item de custo (ex.: aluguel, contador) além da categoria; a aba Despesas
   agrupa por ele. Maiúsculas e espaços não diferenciam itens.
 - **Custo operacional** = todas as despesas **exceto Retirada de Sócios** (retirada é distribuição de lucro).
@@ -214,6 +218,12 @@ Todas em `src/lib/financeiro/calculos.ts`, cobertas por testes.
   conversão dos últimos 12 meses.
 - **Projeção (3 meses)**: média móvel simples das entradas e saídas do caixa dos últimos 3 meses encerrados,
   somada ao caixa atual. Sem histórico, projeta só o custo estimado, sem receita (cenário prudente).
+- **Links de visualização**: link secreto e somente leitura da Visão geral, sem login, criado em "Links de
+  visualização". O código (256 bits) é gerado no navegador e vai no `#fragmento` da URL, que não é enviado a
+  servidores; o banco guarda só o hash SHA-256. Cada link pode ter validade e ser revogado, e registra último acesso e
+  número de acessos. Quem abre recebe, pela função `visao_compartilhada`, apenas tipo, categoria, valor, data, quem
+  pagou e VGV dos lançamentos (nada de cliente, corretor, produto, descrição, sócio ou item de custo), além das
+  configurações, metas e o VGV das propostas em negociação.
 - **Exportação**: CSV com `;`, vírgula decimal e BOM UTF-8, para abrir direto no Excel em português. Gerado no navegador.
 
 ## Design

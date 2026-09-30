@@ -15,7 +15,7 @@ const GRUPOS: { titulo: string; itens: { href: string; rotulo: string; icone: No
       { href: "/vendas/", rotulo: "Vendas & corretores", icone: "vendas" },
       { href: "/despesas/", rotulo: "Despesas", icone: "despesas" },
       { href: "/metas/", rotulo: "Metas & projeções", icone: "metas" },
-      { href: "/socios/", rotulo: "Sócios & retiradas", icone: "socios" },
+      { href: "/socios/", rotulo: "Sócios & aportes", icone: "socios" },
     ],
   },
   {
@@ -31,6 +31,7 @@ const GRUPOS: { titulo: string; itens: { href: string; rotulo: string; icone: No
     itens: [
       { href: "/configuracoes/", rotulo: "Configurações", icone: "configuracoes" },
       { href: "/usuarios/", rotulo: "Usuários", icone: "usuarios" },
+      { href: "/compartilhar/", rotulo: "Links de visualização", icone: "link" },
     ],
   },
 ];

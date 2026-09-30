@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   agruparPor,
+  aportesPorPessoa,
   caixaAgora,
   calcularComissao,
   comissaoMedia,
@@ -82,19 +83,22 @@ describe("calcularComissao", () => {
 });
 
 describe("caixa", () => {
-  it("receitas entram no caixa; despesas da Cris não saem dele", () => {
+  it("receitas entram no caixa; despesas pagas por aportadores não saem dele", () => {
     const ls = [
       venda("2026-01-10", 10000),
       custo("2026-01-05", 3000, { origem_recurso: "Cris" }),
+      custo("2026-01-07", 500, { origem_recurso: "Valor Marketing" }),
       custo("2026-01-06", 1000),
       venda("2026-02-10", 8000),
       retirada("2026-02-20", 2000),
     ];
     const [jan, fev] = serieMensal(ls, cfg({ saldo_inicial_caixa: 1000 }), ["2026-01", "2026-02"]);
-    expect(jan.resultado).toBe(6000); // no resultado, a despesa da Cris conta
+    expect(jan.resultado).toBe(5500); // no resultado, os aportes contam
     expect(jan.fluxoCaixa).toBe(9000); // no caixa, não
     expect(jan.caixa).toBe(10000);
-    expect(jan.bancadoCris).toBe(3000);
+    expect(jan.aportes).toBe(3500);
+    expect(jan.aportesPor).toEqual({ Cris: 3000, "Valor Marketing": 500 });
+    expect(jan.aportado).toBe(3500);
     expect(fev.caixa).toBe(16000);
     expect(fev.retiradas).toBe(2000);
   });
@@ -104,12 +108,18 @@ describe("caixa", () => {
       venda("2026-09-10", 10000),
       custo("2026-09-15", 2000),
       custo("2026-09-16", 700, { origem_recurso: "Cris" }),
+      custo("2026-09-17", 900, { origem_recurso: "Leandro" }),
+      custo("2026-09-29", 300, { origem_recurso: "Geyson" }),
       custo("2026-09-30", 4000),
     ];
     expect(caixaAgora(ls, cfg({ saldo_inicial_caixa: 500 }), "2026-09-23")).toEqual({
       saldo: 8500,
       aVencer: -4000,
-      bancadoCris: 700,
+      aportado: 1600,
+      aportadoPor: [
+        { nome: "Leandro", total: 900 },
+        { nome: "Cris", total: 700 },
+      ],
     });
   });
 
@@ -276,5 +286,20 @@ describe("itens de custo", () => {
       ["Não informado", 200],
     ]);
     expect(r[1].categorias).toEqual(["Marketing"]);
+  });
+});
+
+describe("aportes por pessoa", () => {
+  it("separa o período do histórico e ignora o que o Caixa pagou", () => {
+    const ls = [
+      custo("2026-08-10", 1000, { origem_recurso: "Cris" }),
+      custo("2026-09-10", 400, { origem_recurso: "Cris" }),
+      custo("2026-09-12", 2500, { origem_recurso: "Geyson" }),
+      custo("2026-09-13", 9999),
+    ];
+    expect(aportesPorPessoa(ls, "2026-09-01", "2026-09-30")).toEqual([
+      { nome: "Geyson", periodo: 2500, total: 2500, qtd: 1 },
+      { nome: "Cris", periodo: 400, total: 1400, qtd: 1 },
+    ]);
   });
 });

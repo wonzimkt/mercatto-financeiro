@@ -4,11 +4,13 @@
  * Assim cada regra de negócio tem um lugar só e um teste.
  *
  * Modelo de caixa: toda receita entra no Caixa da empresa. Despesas têm
- * origem — as pagas pelo Caixa saem dele; as pagas pela Cris NÃO saem do
- * caixa e são somadas à parte ("bancado pela Cris"). No resultado do mês
- * (receita − despesa) todas as despesas contam, independente de quem pagou.
+ * origem — as pagas pelo Caixa saem dele; as pagas por aportadores (Cris,
+ * Leandro, Geyson, Valor Marketing…) NÃO saem do caixa e são somadas à
+ * parte como aportes. No resultado do mês (receita − despesa) todas as
+ * despesas contam, independente de quem pagou.
  */
 import {
+  CAIXA,
   CATEGORIAS_DESPESA,
   COMISSAO,
   RETIRADA,
@@ -28,7 +30,14 @@ export const ehRetirada = (l: Lancamento) => l.categoria === RETIRADA;
 /** Despesa operacional: toda despesa, menos retirada de sócios. */
 export const ehOperacional = (l: Lancamento) => l.tipo === "despesa" && l.categoria !== RETIRADA;
 /** Movimenta o caixa: receitas (entram) e despesas pagas pelo Caixa (saem). */
-export const mexeNoCaixa = (l: Lancamento) => l.tipo === "receita" || l.origem_recurso === "Caixa";
+export const mexeNoCaixa = (l: Lancamento) => l.tipo === "receita" || l.origem_recurso === CAIXA;
+/** Despesa paga por um aportador (qualquer pagador que não o Caixa). */
+export const ehAporte = (l: Lancamento) => l.tipo === "despesa" && l.origem_recurso !== CAIXA;
+
+/** Soma valores por nome em um registro, arredondando ao centavo. */
+function somarEm(r: Record<string, number>, nome: string, v: number) {
+  r[nome] = centavos((r[nome] ?? 0) + v);
+}
 
 /** Valor com sinal: receita soma, despesa subtrai. */
 export const comSinal = (l: Lancamento) => (l.tipo === "receita" ? l.valor : -l.valor);
@@ -90,7 +99,7 @@ export interface MesAgregado {
   mes: string;
   receita: number;
   despesa: number;
-  /** receita − despesa (inclui retiradas e despesas pagas pela Cris) */
+  /** receita − despesa (inclui retiradas e despesas pagas por aportadores) */
   resultado: number;
   comissoes: number;
   vendas: number;
@@ -101,8 +110,10 @@ export interface MesAgregado {
   porCategoria: Record<CategoriaDespesa, number>;
   /** Despesas pagas pelo Caixa */
   despesaCaixa: number;
-  /** Despesas pagas pela Cris (não saem do caixa) */
-  despesaCris: number;
+  /** Despesas pagas por aportadores (não saem do caixa) */
+  aportes: number;
+  /** Aportes do mês por pessoa */
+  aportesPor: Record<string, number>;
   /** Variação do caixa no mês: receita − despesaCaixa */
   fluxoCaixa: number;
 }
@@ -121,7 +132,8 @@ function mesVazio(mes: string): MesAgregado {
     retiradas: 0,
     porCategoria: Object.fromEntries(CATEGORIAS_DESPESA.map((c) => [c, 0])) as Record<CategoriaDespesa, number>,
     despesaCaixa: 0,
-    despesaCris: 0,
+    aportes: 0,
+    aportesPor: {},
     fluxoCaixa: 0,
   };
 }
@@ -144,8 +156,10 @@ export function agregarPorMes(ls: Lancamento[]): Map<string, MesAgregado> {
       m.porCategoria[l.categoria as CategoriaDespesa] += l.valor;
       if (ehRetirada(l)) m.retiradas += l.valor;
       else m.operacional += l.valor;
-      if (l.origem_recurso === "Cris") m.despesaCris += l.valor;
-      else m.despesaCaixa += l.valor;
+      if (ehAporte(l)) {
+        m.aportes += l.valor;
+        somarEm(m.aportesPor, l.origem_recurso ?? "Não informado", l.valor);
+      } else m.despesaCaixa += l.valor;
     }
     mapa.set(k, m);
   }
@@ -159,8 +173,8 @@ export function agregarPorMes(ls: Lancamento[]): Map<string, MesAgregado> {
 export interface PontoSerie extends MesAgregado {
   /** Caixa ao fim do mês: saldo inicial + receitas − despesas pagas pelo Caixa. */
   caixa: number;
-  /** Total bancado pela Cris até o fim do mês. */
-  bancadoCris: number;
+  /** Total aportado (despesas pagas por aportadores) até o fim do mês. */
+  aportado: number;
 }
 
 /** Série mensal com caixa acumulado, para qualquer lista de meses. */
@@ -170,14 +184,14 @@ export function serieMensal(ls: Lancamento[], cfg: Configuracoes, meses: string[
 
   return meses.map((mes) => {
     let caixa = cfg.saldo_inicial_caixa;
-    let bancadoCris = 0;
+    let aportado = 0;
     for (const k of chaves) {
       if (k > mes) break;
       const m = mapa.get(k)!;
       caixa += m.fluxoCaixa;
-      bancadoCris += m.despesaCris;
+      aportado += m.aportes;
     }
-    return { ...(mapa.get(mes) ?? mesVazio(mes)), caixa: centavos(caixa), bancadoCris: centavos(bancadoCris) };
+    return { ...(mapa.get(mes) ?? mesVazio(mes)), caixa: centavos(caixa), aportado: centavos(aportado) };
   });
 }
 
@@ -188,24 +202,52 @@ export interface CaixaAgora {
   saldo: number;
   /** Lançamentos com data futura já registrados, que ainda vão mexer no caixa. */
   aVencer: number;
-  /** Total pago pela Cris até hoje (não saiu do caixa). */
-  bancadoCris: number;
+  /** Total aportado até hoje (despesas pagas por aportadores; não saiu do caixa). */
+  aportado: number;
+  /** Aportado até hoje, por pessoa, do maior para o menor. */
+  aportadoPor: { nome: string; total: number }[];
 }
 
 export function caixaAgora(ls: Lancamento[], cfg: Configuracoes, hoje: string): CaixaAgora {
   let saldo = cfg.saldo_inicial_caixa;
   let aVencer = 0;
-  let bancadoCris = 0;
+  let aportado = 0;
+  const por: Record<string, number> = {};
   for (const l of ls) {
     const futuro = l.data > hoje;
     if (mexeNoCaixa(l)) {
       if (futuro) aVencer += comSinal(l);
       else saldo += comSinal(l);
     } else if (!futuro) {
-      bancadoCris += l.valor;
+      aportado += l.valor;
+      somarEm(por, l.origem_recurso ?? "Não informado", l.valor);
     }
   }
-  return { saldo: centavos(saldo), aVencer: centavos(aVencer), bancadoCris: centavos(bancadoCris) };
+  return {
+    saldo: centavos(saldo),
+    aVencer: centavos(aVencer),
+    aportado: centavos(aportado),
+    aportadoPor: Object.entries(por)
+      .map(([nome, total]) => ({ nome, total }))
+      .sort((a, b) => b.total - a.total),
+  };
+}
+
+/** Aportes (despesas pagas por aportadores) por pessoa num período e no histórico todo. */
+export function aportesPorPessoa(ls: Lancamento[], inicio: string, fim: string) {
+  const mapa = new Map<string, { nome: string; periodo: number; total: number; qtd: number }>();
+  for (const l of ls) {
+    if (!ehAporte(l)) continue;
+    const nome = l.origem_recurso ?? "Não informado";
+    const g = mapa.get(nome) ?? { nome, periodo: 0, total: 0, qtd: 0 };
+    g.total = centavos(g.total + l.valor);
+    if (dentroDe(l.data, inicio, fim)) {
+      g.periodo = centavos(g.periodo + l.valor);
+      g.qtd += 1;
+    }
+    mapa.set(nome, g);
+  }
+  return [...mapa.values()].sort((a, b) => b.total - a.total || a.nome.localeCompare(b.nome, "pt-BR"));
 }
 
 // ─── Visão geral do mês ─────────────────────────────────────────────────

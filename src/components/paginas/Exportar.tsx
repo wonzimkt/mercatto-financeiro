@@ -14,7 +14,7 @@ import {
 import { baixarCsv, gerarCsv, type Celula } from "@/lib/financeiro/csv";
 import { hojeISO, nomeMes } from "@/lib/financeiro/datas";
 import { liquidoPotencial } from "@/lib/financeiro/propostas";
-import { CATEGORIAS_DESPESA, ROTULO_STATUS, type Lancamento } from "@/lib/financeiro/tipos";
+import { CAIXA, CATEGORIAS_DESPESA, ROTULO_STATUS, type Lancamento } from "@/lib/financeiro/tipos";
 
 const COLUNAS: (keyof Lancamento)[] = [
   "id",
@@ -45,7 +45,14 @@ const linhasLancamentos = (ls: Lancamento[]): Celula[][] =>
   [...ls].sort((a, b) => a.data.localeCompare(b.data)).map((l) => COLUNAS.map((c) => l[c] as Celula));
 
 export function Exportar() {
-  const { lancamentos: ls, config, propostas } = useDados();
+  const { lancamentos: ls, config, propostas, pagadores } = useDados();
+  // Colunas de aporte por pessoa: todos os pagadores menos o Caixa, mais nomes antigos que ainda apareçam.
+  const aportadores = [
+    ...new Set([
+      ...pagadores.filter((p) => p.nome !== CAIXA).map((p) => p.nome),
+      ...ls.filter((l) => l.tipo === "despesa" && l.origem_recurso && l.origem_recurso !== CAIXA).map((l) => l.origem_recurso!),
+    ]),
+  ];
   const periodo = usePeriodo();
   const sufixo = periodo.tipo === "personalizado" ? `${periodo.inicio}_a_${periodo.fim}` : periodo.ref;
 
@@ -156,22 +163,23 @@ export function Exportar() {
     },
     {
       titulo: "Fluxo de caixa mensal",
-      descricao: "Entradas, saídas do caixa, pago pela Cris, resultado e caixa no fim de cada mês.",
+      descricao: "Entradas, saídas do caixa, aportes (total e por pessoa), resultado e caixa no fim de cada mês.",
       gerar: () => [
         `mercatto-fluxo-${sufixo}`,
         gerarCsv(
-          ["Mês", "Entradas", "Despesas", "Saídas do caixa", "Pago pela Cris", "Operacional", "Retiradas", "Resultado", "Caixa no fim do mês", "Bancado pela Cris (acumulado)"],
+          ["Mês", "Entradas", "Despesas", "Saídas do caixa", "Aportes", ...aportadores.map((n) => `Aporte ${n}`), "Operacional", "Retiradas", "Resultado", "Caixa no fim do mês", "Aportado (acumulado)"],
           serieMensal(ls, config, periodo.meses).map((p) => [
             nomeMes(p.mes),
             p.receita,
             p.despesa,
             p.despesaCaixa,
-            p.despesaCris,
+            p.aportes,
+            ...aportadores.map((n) => p.aportesPor[n] ?? 0),
             p.operacional,
             p.retiradas,
             p.resultado,
             p.caixa,
-            p.bancadoCris,
+            p.aportado,
           ]),
         ),
       ],

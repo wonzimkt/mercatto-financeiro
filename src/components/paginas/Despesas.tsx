@@ -7,7 +7,7 @@ import { useDados } from "@/components/Painel";
 import { despesasPorCategoriaMes, despesasPorItem, maioresDespesas, noPeriodo, variacao } from "@/lib/financeiro/calculos";
 import { mesesDecorridos, mesesDeEvolucao, nomeMes, somarMeses } from "@/lib/financeiro/datas";
 import { dataBR, moeda, moedaCompacta } from "@/lib/financeiro/formato";
-import { CATEGORIAS_DESPESA, RETIRADA } from "@/lib/financeiro/tipos";
+import { CAIXA, CATEGORIAS_DESPESA, RETIRADA } from "@/lib/financeiro/tipos";
 
 export function Despesas() {
   const { lancamentos: ls } = useDados();
@@ -24,7 +24,7 @@ export function Despesas() {
   const retiradas = doPeriodo.filter((l) => l.categoria === RETIRADA).reduce((s, l) => s + l.valor, 0);
   const maiores = maioresDespesas(ls, periodo.inicio, periodo.fim, 12);
   const porItem = despesasPorItem(ls, periodo.inicio, periodo.fim);
-  const pagoCris = doPeriodo.filter((l) => l.origem_recurso === "Cris").reduce((s, l) => s + l.valor, 0);
+  const aportes = doPeriodo.filter((l) => l.origem_recurso !== CAIXA).reduce((s, l) => s + l.valor, 0);
   const totalCategoria = (c: string) => doPeriodo.filter((l) => l.categoria === c).reduce((s, l) => s + l.valor, 0);
 
   return (
@@ -33,7 +33,7 @@ export function Despesas() {
         <FiltroPeriodo />
       </CabecalhoPagina>
       <Figuras>
-        <Figura rotulo="Despesa total" valor={total} rodape={<span>pago pela Cris: {moeda(pagoCris)}</span>} />
+        <Figura rotulo="Despesa total" valor={total} rodape={<span>aportes (fora do caixa): {moeda(aportes)}</span>} />
         <Figura rotulo="Custo operacional" valor={total - retiradas} rodape={<span>sem retiradas de sócios</span>} />
         <Figura rotulo="Retiradas de sócios" valor={retiradas} />
         <Figura

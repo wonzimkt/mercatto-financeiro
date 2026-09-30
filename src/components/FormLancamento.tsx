@@ -8,9 +8,9 @@ import { calcularComissao, valoresUsados } from "@/lib/financeiro/calculos";
 import { hojeISO, validaData } from "@/lib/financeiro/datas";
 import { lerValor, moeda, paraCampo } from "@/lib/financeiro/formato";
 import {
+  CAIXA,
   CATEGORIAS,
   COMISSAO,
-  ORIGENS,
   RETIRADA,
   type Categoria,
   type Lancamento,
@@ -32,7 +32,7 @@ const pct = (v: number) => (Number.isFinite(v) ? String(Math.round(v * 100) / 10
  */
 export function FormLancamento({ inicial, proposta }: { inicial?: Lancamento; proposta?: Proposta }) {
   const router = useRouter();
-  const { lancamentos, config, recarregar } = useDados();
+  const { lancamentos, config, pagadores, recarregar } = useDados();
 
   const [tipo, setTipo] = useState<Tipo>(inicial?.tipo ?? "receita");
   const [categoria, setCategoria] = useState<Categoria>(inicial?.categoria ?? COMISSAO);
@@ -71,6 +71,11 @@ export function FormLancamento({ inicial, proposta }: { inicial?: Lancamento; pr
   );
 
   const ehDespesa = tipo === "despesa";
+  // Caixa primeiro, depois os aportadores ativos; mantém um inativo se já estiver neste lançamento.
+  const opcoesPagador = [
+    CAIXA,
+    ...pagadores.filter((p) => p.nome !== CAIXA && (p.ativo || p.nome === inicial?.origem_recurso)).map((p) => p.nome),
+  ];
   const ehComissao = categoria === COMISSAO;
   const ehRetirada = categoria === RETIRADA;
 
@@ -110,7 +115,7 @@ export function FormLancamento({ inicial, proposta }: { inicial?: Lancamento; pr
       e.valor = "Informe um valor maior que zero.";
     }
     if (!validaData(data)) e.data = "Data inválida.";
-    if (ehDespesa && !origem) e.origem = "Escolha quem pagou: Caixa ou Cris.";
+    if (ehDespesa && !origem) e.origem = "Escolha quem pagou.";
     if (ehComissao) {
       if (!corretor.trim()) e.corretor = "Obrigatório em comissões.";
       if (!cliente.trim()) e.cliente = "Obrigatório em comissões.";
@@ -288,10 +293,10 @@ export function FormLancamento({ inicial, proposta }: { inicial?: Lancamento; pr
       </div>
 
       {ehDespesa && (
-        <fieldset className="campo">
+        <fieldset className="campo campo--largo">
           <legend>Quem pagou</legend>
-          <div className="segmentos">
-            {ORIGENS.map((o) => (
+          <div className="segmentos segmentos--quebra">
+            {opcoesPagador.map((o) => (
               <label key={o}>
                 <input
                   type="radio"
@@ -308,7 +313,11 @@ export function FormLancamento({ inicial, proposta }: { inicial?: Lancamento; pr
           {erros.origem ? (
             <span className="campo__erro">{erros.origem}</span>
           ) : (
-            origem === "Cris" && <span className="campo__ajuda">Pago pela Cris: não sai do caixa da empresa.</span>
+            <span className="campo__ajuda">
+              {origem && origem !== CAIXA
+                ? `Aporte de ${origem}: conta como despesa, mas não sai do caixa da empresa.`
+                : "Só o Caixa sai do caixa da empresa. Os demais contam como aporte."}
+            </span>
           )}
         </fieldset>
       )}

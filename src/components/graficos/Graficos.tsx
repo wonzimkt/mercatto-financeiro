@@ -220,7 +220,7 @@ export function GraficoLinha({
   );
 }
 
-// ─── Caixa × total bancado pela Cris ────────────────────────────────────
+// ─── Caixa × total aportado ─────────────────────────────────────────────
 
 export function GraficoOrigens({
   dados,
@@ -234,7 +234,7 @@ export function GraficoOrigens({
       <Legenda
         itens={[
           { rotulo: "Caixa da empresa", cor: "var(--viz-caixa)", forma: "linha" },
-          { rotulo: "Total bancado pela Cris", cor: "var(--viz-cris)", forma: "linha" },
+          { rotulo: "Total aportado", cor: "var(--viz-cris)", forma: "linha" },
         ]}
       />
       <ResponsiveContainer width="100%" height={altura}>
@@ -253,7 +253,7 @@ export function GraficoOrigens({
               <Line
                 key={o}
                 dataKey={o}
-                name={o === "Caixa" ? "Caixa da empresa" : "Bancado pela Cris"}
+                name={o === "Caixa" ? "Caixa da empresa" : "Total aportado"}
                 type="linear"
                 stroke={cor}
                 strokeWidth={2}

@@ -400,6 +400,34 @@ code {
   }
 }
 
+/* Barra do link de visualização (sem menu lateral) */
+.barra-compartilhada {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  padding: 12px 32px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.barra-compartilhada .marca {
+  padding: 0;
+}
+.barra-compartilhada__info {
+  margin-left: auto;
+  font-size: 13.5px;
+  color: var(--ink-2);
+}
+@media (max-width: 640px) {
+  .barra-compartilhada {
+    padding: 10px 16px;
+  }
+  .barra-compartilhada__info {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
 /* ─── Página ────────────────────────────────────────────────────────── */
 
 .pagina {
@@ -1003,6 +1031,13 @@ fieldset.campo {
 }
 .segmentos:has(input[aria-invalid="true"]) {
   border-color: var(--neg);
+}
+
+/* Muitas opções (ex.: quem pagou): quebra em linhas em vez de rolar */
+.segmentos--quebra {
+  flex-wrap: wrap;
+  overflow: visible;
+  width: auto;
 }
 
 .segmentos--grande label {

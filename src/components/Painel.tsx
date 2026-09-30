@@ -4,22 +4,36 @@ import { usePathname, useRouter } from "next/navigation";
 import { createContext, Suspense, useCallback, useContext, useEffect, useState } from "react";
 import { MarcaAcesso } from "@/components/Acesso";
 import { Navegacao } from "@/components/Navegacao";
-import { buscarConfiguracoes, buscarLancamentos, buscarMetas, buscarPropostas } from "@/lib/dados";
+import { buscarConfiguracoes, buscarLancamentos, buscarMetas, buscarPagadores, buscarPropostas } from "@/lib/dados";
 import { CONFIG_DEMO, lancamentosDemo, METAS_DEMO, MODO_DEMO, propostasDemo } from "@/lib/demo";
-import { CONFIG_PADRAO, type Configuracoes, type Lancamento, type MetaAnual, type Proposta } from "@/lib/financeiro/tipos";
+import {
+  CONFIG_PADRAO,
+  PAGADORES_PADRAO,
+  type Configuracoes,
+  type Lancamento,
+  type MetaAnual,
+  type Pagador,
+  type Proposta,
+} from "@/lib/financeiro/tipos";
 import { destinoDaSessao, supabase } from "@/lib/supabase/cliente";
 
-interface DadosPainel {
+export interface DadosPainel {
   lancamentos: Lancamento[];
   config: Configuracoes;
   metas: MetaAnual[];
   propostas: Proposta[];
+  pagadores: Pagador[];
   email: string;
   atualizadoEm: Date | null;
   recarregar: () => Promise<void>;
+  /** Link de visualização: esconde tudo que edita ou leva a telas internas. */
+  somenteLeitura: boolean;
 }
 
 const Contexto = createContext<DadosPainel | null>(null);
+
+/** Fornece dados às telas fora do painel (ex.: link de visualização). */
+export const ProvedorDados = Contexto.Provider;
 
 export function useDados(): DadosPainel {
   const ctx = useContext(Contexto);
@@ -44,6 +58,7 @@ export function Painel({ children }: { children: React.ReactNode }) {
   const [config, setConfig] = useState<Configuracoes>(CONFIG_PADRAO);
   const [metas, setMetas] = useState<MetaAnual[]>([]);
   const [propostas, setPropostas] = useState<Proposta[]>([]);
+  const [pagadores, setPagadores] = useState<Pagador[]>(PAGADORES_PADRAO);
   const [email, setEmail] = useState("");
   const [atualizadoEm, setAtualizadoEm] = useState<Date | null>(null);
 
@@ -53,19 +68,22 @@ export function Painel({ children }: { children: React.ReactNode }) {
       setConfig(CONFIG_DEMO);
       setMetas(METAS_DEMO);
       setPropostas((atual) => (atual.length ? atual : propostasDemo()));
+      setPagadores(PAGADORES_PADRAO);
       setAtualizadoEm(new Date());
       return;
     }
-    const [ls, cfg, mts, pps] = await Promise.all([
+    const [ls, cfg, mts, pps, pgs] = await Promise.all([
       buscarLancamentos(),
       buscarConfiguracoes(),
       buscarMetas(),
       buscarPropostas(),
+      buscarPagadores(),
     ]);
     setLancamentos(ls);
     setConfig(cfg);
     setMetas(mts);
     setPropostas(pps);
+    setPagadores(pgs);
     setAtualizadoEm(new Date());
   }, []);
 
@@ -174,7 +192,7 @@ export function Painel({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <Contexto.Provider value={{ lancamentos, config, metas, propostas, email, atualizadoEm, recarregar }}>
+    <Contexto.Provider value={{ lancamentos, config, metas, propostas, pagadores, email, atualizadoEm, recarregar, somenteLeitura: false }}>
       <div className="app">
         <Navegacao email={email} />
         <div className="app__main">

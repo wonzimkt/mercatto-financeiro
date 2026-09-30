@@ -29,8 +29,28 @@ export const CATEGORIAS: Record<Tipo, readonly Categoria[]> = {
 export const CATEGORIAS_OPERACIONAIS: readonly CategoriaDespesa[] =
   CATEGORIAS_DESPESA.filter((c) => c !== RETIRADA);
 
-export const ORIGENS = ["Caixa", "Cris"] as const;
-export type Origem = (typeof ORIGENS)[number];
+/**
+ * Quem pagou uma despesa. "Caixa" é a empresa e é o único que mexe no caixa;
+ * os demais (Cris, Leandro, Geyson, Valor Marketing…) são aportes: a despesa
+ * conta no resultado, mas não sai do caixa. A lista fica na tabela
+ * `pagadores` e é editável em Configurações.
+ */
+export const CAIXA = "Caixa";
+export type Origem = string;
+
+export interface Pagador {
+  nome: string;
+  ativo: boolean;
+  ordem: number;
+}
+
+export const PAGADORES_PADRAO: Pagador[] = [
+  { nome: CAIXA, ativo: true, ordem: 0 },
+  { nome: "Cris", ativo: true, ordem: 1 },
+  { nome: "Leandro", ativo: true, ordem: 2 },
+  { nome: "Geyson", ativo: true, ordem: 3 },
+  { nome: "Valor Marketing", ativo: true, ordem: 4 },
+];
 
 export interface Lancamento {
   id: string;
@@ -41,7 +61,7 @@ export interface Lancamento {
   /** AAAA-MM-DD */
   data: string;
   descricao: string | null;
-  /** Só em despesas: quem pagou (Caixa da empresa ou Cris). Receitas entram no Caixa. */
+  /** Só em despesas: quem pagou (Caixa ou um aportador). Receitas entram no Caixa. */
   origem_recurso: Origem | null;
   /** Só em despesas: qual custo é (ex.: aluguel), além da categoria. */
   item_custo: string | null;
