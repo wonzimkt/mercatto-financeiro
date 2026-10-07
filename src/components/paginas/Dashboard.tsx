@@ -50,7 +50,16 @@ function Indicador({
 const tomDe = (v: number): "pos" | "neg" | "" => (v > 0 ? "pos" : v < 0 ? "neg" : "");
 
 export function Dashboard() {
-  const { lancamentos: ls, config, metas, propostas } = useDados();
+  const { lancamentos: ls, config, metas, propostas, somenteLeitura } = useDados();
+  /** Atalho interno: some no link de visualização (quem abre não tem acesso às outras telas). */
+  const atalho = (href: string, conteudo: ReactNode) =>
+    somenteLeitura ? (
+      <span>{conteudo}</span>
+    ) : (
+      <Link className="link" href={href}>
+        {conteudo}
+      </Link>
+    );
   const [tipo, setTipo] = useState<Tipo>("12m");
   const hoje = hojeISO();
   const atual = mesAtual();
@@ -125,11 +134,16 @@ export function Dashboard() {
 
       {ls.length === 0 && (
         <p className="aviso">
-          Ainda não há lançamentos. Os gráficos aparecem conforme você{" "}
-          <Link className="link" href="/lancamentos/novo/">
-            registra receitas e despesas
-          </Link>
-          .
+          Ainda não há lançamentos.{" "}
+          {!somenteLeitura && (
+            <>
+              Os gráficos aparecem conforme você{" "}
+              <Link className="link" href="/lancamentos/novo/">
+                registra receitas e despesas
+              </Link>
+              .
+            </>
+          )}
         </p>
       )}
 
@@ -180,11 +194,7 @@ export function Dashboard() {
               </div>
             </>
           ) : (
-            <div className="figura__rodape">
-              <Link className="link" href="/metas/">
-                Definir meta do ano
-              </Link>
-            </div>
+            <div className="figura__rodape">{atalho("/metas/", "Sem meta definida para o ano")}</div>
           )}
         </div>
       </div>
@@ -203,9 +213,11 @@ export function Dashboard() {
           ) : (
             <p className="vazio">
               Sem meta para {ano}.{" "}
-              <Link className="link" href="/metas/">
-                Definir meta
-              </Link>
+              {!somenteLeitura && (
+                <Link className="link" href="/metas/">
+                  Definir meta
+                </Link>
+              )}
             </p>
           )}
         </Secao>
@@ -228,11 +240,7 @@ export function Dashboard() {
 
         <Secao className="span-4"
           titulo="Top corretores"
-          nota={
-            <Link className="link" href="/vendas/">
-              {vendas} {vendas === 1 ? "venda" : "vendas"} · VGV {moedaCompacta(vgv)}
-            </Link>
-          }
+          nota={atalho("/vendas/", `${vendas} ${vendas === 1 ? "venda" : "vendas"} · VGV ${moedaCompacta(vgv)}`)}
         >
           <Barras
             itens={corretores.map((c) => ({
@@ -247,11 +255,10 @@ export function Dashboard() {
 
         <Secao className="span-4"
           titulo="Em negociação"
-          nota={
-            <Link className="link" href="/propostas/">
-              {rp.emNegociacao} {rp.emNegociacao === 1 ? "proposta" : "propostas"} · VGV {moedaCompacta(rp.vgvEmNegociacao)}
-            </Link>
-          }
+          nota={atalho(
+            "/propostas/",
+            `${rp.emNegociacao} ${rp.emNegociacao === 1 ? "proposta" : "propostas"} · VGV ${moedaCompacta(rp.vgvEmNegociacao)}`,
+          )}
         >
           <Barras
             itens={negociacao.map((c) => ({ nome: c.nome, valor: c.vgv, detalhe: `${c.qtd} ${c.qtd === 1 ? "proposta" : "propostas"}` }))}

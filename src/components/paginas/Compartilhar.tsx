@@ -92,7 +92,7 @@ export function Compartilhar() {
     <main className="pagina">
       <CabecalhoPagina
         titulo="Links de visualização"
-        descricao="Quem tiver o link vê a Visão geral do financeiro, somente leitura e sem login. Nomes de clientes, corretores e produtos não aparecem."
+        descricao="Quem tiver o link vê o Dashboard e a Visão geral do financeiro, somente leitura e sem login. Nomes de clientes, produtos e observações não aparecem."
       />
 
       <div className="colunas">

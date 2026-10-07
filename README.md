@@ -230,12 +230,12 @@ Todas em `src/lib/financeiro/calculos.ts`, cobertas por testes.
   conversão dos últimos 12 meses.
 - **Projeção (3 meses)**: média móvel simples das entradas e saídas do caixa dos últimos 3 meses encerrados,
   somada ao caixa atual. Sem histórico, projeta só o custo estimado, sem receita (cenário prudente).
-- **Links de visualização**: link secreto e somente leitura da Visão geral, sem login, criado em "Links de
+- **Links de visualização**: link secreto e somente leitura do Dashboard e da Visão geral, sem login, criado em "Links de
   visualização". O código (256 bits) é gerado no navegador e vai no `#fragmento` da URL, que não é enviado a
   servidores; o banco guarda só o hash SHA-256. Cada link pode ter validade e ser revogado, e registra último acesso e
   número de acessos. Quem abre recebe, pela função `visao_compartilhada`, apenas tipo, categoria, valor, data, quem
-  pagou e VGV dos lançamentos (nada de cliente, corretor, produto, descrição, sócio ou item de custo), além das
-  configurações, metas e o VGV das propostas em negociação.
+  pagou, VGV, corretor e item de custo dos lançamentos (nada de cliente, produto, cidade, descrição ou sócio), além
+  das configurações, metas e das propostas com situação, VGV, datas e corretor.
 - **Exportação**: CSV com `;`, vírgula decimal e BOM UTF-8, para abrir direto no Excel em português. Gerado no navegador.
 
 ## Design

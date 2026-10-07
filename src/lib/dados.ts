@@ -212,7 +212,7 @@ export async function buscarVisaoCompartilhada(token: string): Promise<VisaoComp
     configuracoes: Record<string, unknown> | null;
     metas: MetaAnual[];
     lancamentos: Record<string, unknown>[];
-    propostas: { status: Proposta["status"]; vgv: number }[];
+    propostas: Pick<Proposta, "status" | "vgv">[] & Partial<Pick<Proposta, "data" | "encerrada_em" | "corretor">>[];
   };
   return {
     nome: d.nome,

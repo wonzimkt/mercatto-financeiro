@@ -3,12 +3,15 @@
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { Acesso } from "@/components/Acesso";
 import { ProvedorDados } from "@/components/Painel";
+import { Dashboard } from "@/components/paginas/Dashboard";
 import { VisaoGeral } from "@/components/paginas/VisaoGeral";
 import { buscarVisaoCompartilhada, type VisaoCompartilhada } from "@/lib/dados";
 import { CONFIG_DEMO, lancamentosDemo, METAS_DEMO, MODO_DEMO, propostasDemo } from "@/lib/demo";
 import { PAGADORES_PADRAO } from "@/lib/financeiro/tipos";
 
 const CHAVE = "mercatto-visao";
+const CHAVE_ABA = "mercatto-visao-aba";
+type Aba = "visao" | "dashboard";
 
 /**
  * Página aberta por um link de visualização (sem login). O código vem no
@@ -21,6 +24,25 @@ export function VisaoCompartilhadaPagina() {
   const [erro, setErro] = useState("");
   const [token, setToken] = useState("");
   const [atualizadoEm, setAtualizadoEm] = useState<Date | null>(null);
+  const [aba, setAba] = useState<Aba>("dashboard");
+
+  useEffect(() => {
+    try {
+      const salva = sessionStorage.getItem(CHAVE_ABA);
+      if (salva === "visao" || salva === "dashboard") setAba(salva);
+    } catch {
+      /* sem armazenamento: começa no Dashboard */
+    }
+  }, []);
+
+  function trocarAba(a: Aba) {
+    setAba(a);
+    try {
+      sessionStorage.setItem(CHAVE_ABA, a);
+    } catch {
+      /* ignora */
+    }
+  }
 
   const carregar = useCallback(async (t: string) => {
     const d =
@@ -30,18 +52,16 @@ export function VisaoCompartilhadaPagina() {
             expira_em: null,
             config: CONFIG_DEMO,
             metas: METAS_DEMO,
-            // Mesmos cortes do banco: sem cliente, corretor, produto, descrição, sócio ou item de custo.
+            // Mesmos cortes do banco: sem cliente, produto, cidade, descrição ou sócio.
             lancamentos: lancamentosDemo().map((l) => ({
               ...l,
               descricao: null,
               cliente: null,
-              corretor: null,
               produto: null,
               cidade: null,
               socio: null,
-              item_custo: null,
             })),
-            propostas: propostasDemo().filter((p) => p.status === "negociacao"),
+            propostas: propostasDemo().map((p) => ({ ...p, cliente: null, produto: "", cidade: null, observacao: null })),
           }
         : await buscarVisaoCompartilhada(t);
     if (!d) {
@@ -121,13 +141,21 @@ export function VisaoCompartilhadaPagina() {
             </span>
           </div>
           <span className="selo selo--negociacao">Somente leitura</span>
+          <div className="segmentos" role="group" aria-label="Tela">
+            <button type="button" aria-pressed={aba === "dashboard"} onClick={() => trocarAba("dashboard")}>
+              Dashboard
+            </button>
+            <button type="button" aria-pressed={aba === "visao"} onClick={() => trocarAba("visao")}>
+              Visão geral do mês
+            </button>
+          </div>
           <span className="barra-compartilhada__info">
             Compartilhado com {dados.nome}
             {dados.expira_em && ` · válido até ${new Date(dados.expira_em).toLocaleDateString("pt-BR")}`}
           </span>
         </header>
         <Suspense fallback={<div className="carregando">Carregando…</div>}>
-          <VisaoGeral />
+          {aba === "dashboard" ? <Dashboard /> : <VisaoGeral />}
         </Suspense>
         <footer className="rodape-pagina">
           <span>Mercatto Imóveis · Balneário Camboriú &amp; Praia Brava</span>
