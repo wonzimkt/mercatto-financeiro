@@ -11,6 +11,7 @@ const GRUPOS: { titulo: string; itens: { href: string; rotulo: string; icone: No
   {
     titulo: "Análises",
     itens: [
+      { href: "/dashboard/", rotulo: "Dashboard", icone: "grafico" },
       { href: "/", rotulo: "Visão geral", icone: "painel" },
       { href: "/vendas/", rotulo: "Vendas & corretores", icone: "vendas" },
       { href: "/despesas/", rotulo: "Despesas", icone: "despesas" },

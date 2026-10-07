@@ -389,3 +389,112 @@ export function GraficoProjecao({
     </figure>
   );
 }
+
+// ─── Resultado mensal: barra para cima (lucro) ou para baixo (prejuízo) ─
+
+export function GraficoResultado({
+  dados,
+  altura = 240,
+}: {
+  dados: { mes: string; resultado: number }[];
+  altura?: number;
+}) {
+  // Duas séries empilhadas pelo sinal: cada barra tem cor e ponta arredondada do seu lado.
+  const serie = dados.map((d) => ({
+    mes: d.mes,
+    lucro: d.resultado > 0 ? d.resultado : null,
+    prejuizo: d.resultado < 0 ? d.resultado : null,
+  }));
+  return (
+    <figure className="grafico">
+      <Legenda
+        itens={[
+          { rotulo: "Lucro", cor: "var(--viz-pos)" },
+          { rotulo: "Prejuízo", cor: "var(--viz-neg)" },
+        ]}
+      />
+      <ResponsiveContainer width="100%" height={altura}>
+        <ComposedChart data={serie} stackOffset="sign" margin={{ top: 8, right: 8, bottom: 0, left: 0 }} barCategoryGap="30%">
+          {grade}
+          <XAxis dataKey="mes" tickFormatter={rotuloMes} {...eixoX} />
+          <YAxis {...eixoY} />
+          <ReferenceLine y={0} stroke="var(--border-strong)" />
+          <Tooltip
+            cursor={{ fill: "var(--surface-2)" }}
+            content={(p) => (
+              <Dica
+                active={p.active}
+                payload={(p.payload as ReadonlyArray<ItemDica> | undefined)?.filter((i) => i.value != null)}
+                label={p.label}
+              />
+            )}
+          />
+          <Bar dataKey="lucro" name="Resultado" stackId="r" fill="var(--viz-pos)" maxBarSize={22} radius={[4, 4, 0, 0]} />
+          <Bar dataKey="prejuizo" name="Resultado" stackId="r" fill="var(--viz-neg)" maxBarSize={22} radius={[0, 0, 4, 4]} />
+        </ComposedChart>
+      </ResponsiveContainer>
+    </figure>
+  );
+}
+
+// ─── Minigráfico de tendência (sem eixos) para os indicadores ───────────
+
+/**
+ * Linha fina com os últimos meses; o ponto do mês atual em destaque.
+ * Decorativo: o número ao lado é a informação — por isso fica oculto para
+ * leitores de tela, com um resumo em texto no `title`.
+ */
+export function Tendencia({
+  valores,
+  altura = 36,
+  rotulo,
+}: {
+  valores: number[];
+  altura?: number;
+  rotulo: string;
+}) {
+  if (valores.length < 2) return null;
+  const largura = 120;
+  const min = Math.min(...valores);
+  const max = Math.max(...valores);
+  const faixa = max - min || 1;
+  const pad = 4;
+  const pts = valores.map((v, i) => [
+    (i / (valores.length - 1)) * (largura - pad * 2) + pad,
+    altura - pad - ((v - min) / faixa) * (altura - pad * 2),
+  ]);
+  const [ux, uy] = pts[pts.length - 1];
+  return (
+    <svg
+      className="tendencia"
+      width={largura}
+      height={altura}
+      viewBox={`0 0 ${largura} ${altura}`}
+      role="img"
+      aria-label={rotulo}
+    >
+      <title>{rotulo}</title>
+      {min < 0 && max > 0 && (
+        <line
+          x1={pad}
+          x2={largura - pad}
+          y1={altura - pad - ((0 - min) / faixa) * (altura - pad * 2)}
+          y2={altura - pad - ((0 - min) / faixa) * (altura - pad * 2)}
+          stroke="var(--border)"
+          strokeWidth={1}
+          vectorEffect="non-scaling-stroke"
+        />
+      )}
+      <polyline
+        points={pts.map((p) => p.join(",")).join(" ")}
+        fill="none"
+        stroke="var(--ink-3)"
+        strokeWidth={1.5}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+        vectorEffect="non-scaling-stroke"
+      />
+      <circle cx={ux} cy={uy} r={3} fill="var(--viz-bar)" stroke="var(--surface)" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
+    </svg>
+  );
+}

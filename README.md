@@ -212,6 +212,10 @@ Todas em `src/lib/financeiro/calculos.ts`, cobertas por testes.
     `comissao_media_esperada` das configurações. A tela sempre informa de onde veio cada número.
 - **Meta de vendas**: meta anual de **VGV vendido** (tabela `metas_anuais`), editada na aba Metas. Alcançado = soma
   do VGV das vendas do ano; o ritmo compara com a meta proporcional aos dias já passados do ano.
+- **Dashboard**: overview visual dos últimos 12 meses (ou do ano até agora): indicadores com minigráfico de
+  tendência e comparação com o período anterior equivalente, fluxo de caixa, caixa realizado + previsto (só com o
+  já lançado), resultado mês a mês, meta de VGV, despesas por categoria, maiores custos, top corretores, propostas em
+  negociação e aportes por pessoa.
 - **Lançamentos futuros** são lançamentos normais com data à frente: entram no financeiro no mês de cada um. Ao
   lançar, a **Repetição** pode ser *Única*, *Fixo mensal* (ex.: aluguel — agenda 12 meses, com botões para
   estender ou encerrar) ou *Parcelado* (N parcelas mensais). As ocorrências de uma série compartilham `serie_id`; ao

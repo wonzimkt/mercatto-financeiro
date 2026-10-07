@@ -11,15 +11,17 @@ export function Secao({
   acoes,
   children,
   id,
+  className,
 }: {
   titulo: string;
   nota?: ReactNode;
   acoes?: ReactNode;
   children: ReactNode;
   id?: string;
+  className?: string;
 }) {
   return (
-    <section className="secao" id={id} aria-labelledby={id ? `${id}-titulo` : undefined}>
+    <section className={`secao ${className ?? ""}`} id={id} aria-labelledby={id ? `${id}-titulo` : undefined}>
       <header className="secao__cab">
         <h2 className="secao__titulo" id={id ? `${id}-titulo` : undefined}>
           {titulo}

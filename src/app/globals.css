@@ -615,6 +615,62 @@ code {
   }
 }
 
+/* ─── Dashboard ─────────────────────────────────────────────────────── */
+
+.figuras--5 {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+}
+
+.figura--indicador {
+  display: flex;
+  flex-direction: column;
+}
+.tendencia {
+  display: block;
+  width: 120px;
+  height: 32px;
+  margin-top: 8px;
+  overflow: visible;
+}
+.figura--indicador .medidor {
+  margin: 10px 0 2px;
+}
+
+.painel-grade {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+.painel-grade > .secao {
+  margin-bottom: 0;
+  grid-column: span 12;
+}
+.painel-grade > .span-4 {
+  grid-column: span 4;
+}
+.painel-grade > .span-6 {
+  grid-column: span 6;
+}
+.painel-grade > .span-8 {
+  grid-column: span 8;
+}
+@media (max-width: 1180px) {
+  .painel-grade > .span-4 {
+    grid-column: span 6;
+  }
+  .painel-grade > .span-8 {
+    grid-column: span 12;
+  }
+}
+@media (max-width: 820px) {
+  .painel-grade > .span-4,
+  .painel-grade > .span-6,
+  .painel-grade > .span-8 {
+    grid-column: span 12;
+  }
+}
+
 /* ─── Tabelas ───────────────────────────────────────────────────────── */
 
 .tabela-wrap {

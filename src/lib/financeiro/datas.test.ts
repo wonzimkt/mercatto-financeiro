@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { deslocarPeriodo, listaMeses, mesesDeEvolucao, nomeMes, resolverPeriodo, somarMeses, ultimoDia } from "./datas";
+import { deslocarPeriodo, listaMeses, mesesDeEvolucao, mesesDoPainel, nomeMes, resolverPeriodo, somarMeses, ultimoDia } from "./datas";
 
 const agora = new Date(2026, 8, 23); // 23/09/2026
 
@@ -46,5 +46,15 @@ describe("datas", () => {
     expect(mesesDeEvolucao(mes, "2026-09")).toEqual(listaMeses("2025-10", "2026-09"));
     const futuro = resolverPeriodo({ p: "trimestre", ref: "2026-T4" }, agora);
     expect(mesesDeEvolucao(futuro, "2026-09").at(-1)).toBe("2026-09");
+  });
+
+  it("períodos do dashboard: 12 meses ou ano até o mês atual, com o anterior equivalente", () => {
+    const doze = mesesDoPainel("12m", "2026-10");
+    expect(doze.meses[0]).toBe("2025-11");
+    expect(doze.meses).toHaveLength(12);
+    expect(doze.anteriores[0]).toBe("2024-11");
+    const ano = mesesDoPainel("ano", "2026-10");
+    expect(ano.meses).toEqual(listaMeses("2026-01", "2026-10"));
+    expect(ano.anteriores.at(-1)).toBe("2025-10");
   });
 });

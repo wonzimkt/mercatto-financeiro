@@ -2,6 +2,7 @@
 import type { SVGProps } from "react";
 
 const CAMINHOS = {
+  grafico: "M3 3v18h18M7 16v-4M12 16V8M17 16v-7",
   painel: "M3 3h7v9H3zM14 3h7v5h-7zM14 12h7v9h-7zM3 16h7v5H3z",
   vendas: "M3 17l6-6 4 4 8-8M14 7h7v7",
   despesas: "M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1zM8 7h8M8 11h8M8 15h5",

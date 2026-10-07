@@ -176,3 +176,17 @@ export function mesesDeEvolucao(p: Periodo, atual: string = mesAtual()): string[
   const fim = chaveMes(p.fim) < atual ? chaveMes(p.fim) : atual;
   return ultimosMeses(fim, 12);
 }
+
+/**
+ * Meses de um painel de período: os 12 meses até o mês atual, ou de janeiro
+ * até o mês atual. Também devolve o período anterior equivalente (para
+ * comparar): os 12 meses antes, ou o mesmo trecho do ano passado.
+ */
+export function mesesDoPainel(tipo: "12m" | "ano", atual: string): { meses: string[]; anteriores: string[] } {
+  if (tipo === "ano") {
+    const meses = listaMeses(`${atual.slice(0, 4)}-01`, atual);
+    return { meses, anteriores: meses.map((m) => somarMeses(m, -12)) };
+  }
+  const meses = ultimosMeses(atual, 12);
+  return { meses, anteriores: meses.map((m) => somarMeses(m, -12)) };
+}
