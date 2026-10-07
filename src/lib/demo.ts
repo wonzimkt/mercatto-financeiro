@@ -14,6 +14,7 @@ export const CONFIG_DEMO: Configuracoes = {
   comissao_percent: 5,
   split_empresa_percent: 50,
   imposto_nf_percent: 6,
+  gestor_percent: 15,
   custo_fixo_estimado: 22000,
   comissao_media_esperada: 30000,
   saldo_inicial_caixa: 60000,
@@ -37,7 +38,7 @@ export function lancamentosDemo(): Lancamento[] {
   const base = {
     descricao: null, corretor: null, cliente: null, produto: null, cidade: null, socio: null, item_custo: null,
     vgv: null, comissao_percent: null, comissao_bruta: null, split_empresa_percent: null,
-    imposto_nf_percent: null, imposto_nf: null,
+    imposto_nf_percent: null, imposto_nf: null, gestor_percent: null, gestor_valor: null,
     serie_id: null, recorrencia: null, parcela: null, parcelas_total: null,
   };
 
@@ -59,13 +60,14 @@ export function lancamentosDemo(): Lancamento[] {
     let comissoes = 0;
     for (let v = 0; v < vendas; v++) {
       const vgv = Math.round((900_000 + aleatorio() * 2_600_000) / 10_000) * 10_000;
-      const c = calcularComissao({ vgv, comissaoPercent: 5, splitPercent: 50, impostoPercent: 6 });
+      const c = calcularComissao({ vgv, comissaoPercent: 5, splitPercent: 50, impostoPercent: 6, gestorPercent: 15 });
       comissoes += c.liquidoMercatto;
       add({
         ...base, tipo: "receita", categoria: "Comissão de Venda", valor: c.liquidoMercatto, data: dia(8 + v * 7),
         origem_recurso: null, corretor: escolher(corretores), cliente: escolher(clientes),
         produto: escolher(produtos), cidade: escolher(cidades), vgv, comissao_percent: 5,
         comissao_bruta: c.comissaoTotal, split_empresa_percent: 50, imposto_nf_percent: 6, imposto_nf: c.impostoNf,
+        gestor_percent: 15, gestor_valor: c.gestor,
       });
     }
     if (comissoes)

@@ -63,6 +63,8 @@ export function FormLancamento({ inicial, proposta }: { inicial?: Lancamento; pr
   const [comissaoPct, setComissaoPct] = useState(pct(inicial?.comissao_percent ?? config.comissao_percent));
   const [splitPct, setSplitPct] = useState(pct(inicial?.split_empresa_percent ?? config.split_empresa_percent));
   const [impostoPct, setImpostoPct] = useState(pct(inicial?.imposto_nf_percent ?? config.imposto_nf_percent));
+  // Venda antiga sem gestor continua sem gestor ao editar; vendas novas usam o padrão das configurações.
+  const [gestorPct, setGestorPct] = useState(pct(inicial ? (inicial.gestor_percent ?? 0) : config.gestor_percent));
 
   // Repetição (só em lançamentos novos que não são comissão)
   const [repeticao, setRepeticao] = useState<"unica" | Recorrencia>("unica");
@@ -108,9 +110,16 @@ export function FormLancamento({ inicial, proposta }: { inicial?: Lancamento; pr
   const comissaoNum = lerValor(comissaoPct);
   const splitNum = lerValor(splitPct);
   const impostoNum = lerValor(impostoPct);
+  const gestorNum = lerValor(gestorPct);
   const calculo =
-    [vgvNum, comissaoNum, splitNum, impostoNum].every(Number.isFinite) && vgvNum > 0
-      ? calcularComissao({ vgv: vgvNum, comissaoPercent: comissaoNum, splitPercent: splitNum, impostoPercent: impostoNum })
+    [vgvNum, comissaoNum, splitNum, impostoNum, gestorNum].every(Number.isFinite) && vgvNum > 0
+      ? calcularComissao({
+          vgv: vgvNum,
+          comissaoPercent: comissaoNum,
+          splitPercent: splitNum,
+          impostoPercent: impostoNum,
+          gestorPercent: gestorNum,
+        })
       : null;
   const valorFinal = ehComissao ? (calculo?.liquidoMercatto ?? Number.NaN) : lerValor(valor);
 
@@ -119,7 +128,8 @@ export function FormLancamento({ inicial, proposta }: { inicial?: Lancamento; pr
   const percentuaisAlterados =
     comissaoNum !== config.comissao_percent ||
     splitNum !== config.split_empresa_percent ||
-    impostoNum !== config.imposto_nf_percent;
+    impostoNum !== config.imposto_nf_percent ||
+    gestorNum !== config.gestor_percent;
 
   function trocarTipo(t: Tipo) {
     setTipo(t);
@@ -135,6 +145,7 @@ export function FormLancamento({ inicial, proposta }: { inicial?: Lancamento; pr
       if (!(comissaoNum > 0 && comissaoNum <= 100)) e.percentuais = "A comissão deve estar entre 0 e 100%.";
       else if (!(splitNum >= 0 && splitNum <= 100)) e.percentuais = "A parte da Mercatto deve estar entre 0 e 100%.";
       else if (!(impostoNum >= 0 && impostoNum < 100)) e.percentuais = "O imposto deve estar entre 0 e 100%.";
+      else if (!(gestorNum >= 0 && gestorNum < 100)) e.percentuais = "A parte do gestor deve estar entre 0 e 100%.";
       else if (calculo && !(calculo.liquidoMercatto > 0)) e.vgv = "O líquido da Mercatto ficou zerado.";
     } else if (!(valorFinal > 0)) {
       e.valor = "Informe um valor maior que zero.";
@@ -174,6 +185,8 @@ export function FormLancamento({ inicial, proposta }: { inicial?: Lancamento; pr
       split_empresa_percent: ehComissao ? splitNum : null,
       imposto_nf_percent: ehComissao ? impostoNum : null,
       imposto_nf: ehComissao && calculo ? calculo.impostoNf : null,
+      gestor_percent: ehComissao ? gestorNum : null,
+      gestor_valor: ehComissao && calculo ? calculo.gestor : null,
       // Na edição, a ocorrência continua na sua série; lançamentos novos são avulsos (a série é gerada ao salvar).
       serie_id: inicial?.serie_id ?? null,
       recorrencia: inicial?.recorrencia ?? null,
@@ -410,7 +423,14 @@ export function FormLancamento({ inicial, proposta }: { inicial?: Lancamento; pr
                 {linhaCalculo(`Comissão total (${pct(comissaoNum)}%)`, calculo?.comissaoTotal)}
                 {linhaCalculo(`Split corretor (${pct(comissaoNum - splitSobreVgv)}%)`, calculo?.splitCorretor)}
                 {linhaCalculo(`Split Mercatto (${pct(splitSobreVgv)}%)`, calculo?.splitMercatto)}
-                {linhaCalculo(`Imposto sobre NF (${pct(impostoNum)}% do split Mercatto)`, calculo?.impostoNf, "desconto")}
+                {gestorNum > 0 &&
+                  linhaCalculo(`Gestor comercial (${pct(gestorNum)}% do split · NF própria)`, calculo?.gestor, "desconto")}
+                {gestorNum > 0 && linhaCalculo("Base da NF Mercatto", calculo?.baseNf)}
+                {linhaCalculo(
+                  `Imposto sobre NF (${pct(impostoNum)}% ${gestorNum > 0 ? "da base" : "do split Mercatto"})`,
+                  calculo?.impostoNf,
+                  "desconto",
+                )}
               </tbody>
               <tfoot>{linhaCalculo("Líquido Mercatto", calculo?.liquidoMercatto)}</tfoot>
             </table>
@@ -433,14 +453,19 @@ export function FormLancamento({ inicial, proposta }: { inicial?: Lancamento; pr
                 <input id="splitPct" className="num" inputMode="decimal" value={splitPct} onChange={(e) => setSplitPct(e.target.value)} />
               </div>
               <div className="campo">
-                <label htmlFor="impostoPct">Imposto sobre NF (% do split)</label>
+                <label htmlFor="gestorPct">Gestor comercial (% do split Mercatto)</label>
+                <input id="gestorPct" className="num" inputMode="decimal" value={gestorPct} onChange={(e) => setGestorPct(e.target.value)} />
+              </div>
+              <div className="campo">
+                <label htmlFor="impostoPct">Imposto sobre NF da Mercatto (%)</label>
                 <input id="impostoPct" className="num" inputMode="decimal" value={impostoPct} onChange={(e) => setImpostoPct(e.target.value)} />
               </div>
             </div>
             {erros.percentuais && <p className="campo__erro">{erros.percentuais}</p>}
             <p className="campo__ajuda" style={{ margin: "8px 0 0" }}>
               Padrão das configurações: comissão de {pct(config.comissao_percent)}% do VGV,{" "}
-              {pct(config.split_empresa_percent)}% dela para a Mercatto e {pct(config.imposto_nf_percent)}% de imposto sobre a NF.
+              {pct(config.split_empresa_percent)}% dela para a Mercatto, {pct(config.gestor_percent)}% do split para o gestor
+              comercial (que emite a própria nota) e {pct(config.imposto_nf_percent)}% de imposto sobre a NF da Mercatto.
             </p>
           </details>
         </div>

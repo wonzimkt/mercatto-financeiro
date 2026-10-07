@@ -37,6 +37,8 @@ function l(p: Partial<Lancamento> & Pick<Lancamento, "tipo" | "categoria" | "val
     split_empresa_percent: null,
     imposto_nf_percent: null,
     imposto_nf: null,
+    gestor_percent: null,
+    gestor_valor: null,
     serie_id: null,
     recorrencia: null,
     parcela: null,
@@ -72,9 +74,26 @@ describe("calcularComissao", () => {
       comissaoTotal: 50_000,
       splitMercatto: 25_000,
       splitCorretor: 25_000,
+      gestor: 0,
+      baseNf: 25_000,
       impostoNf: 1_500,
       liquidoMercatto: 23_500,
     });
+  });
+
+  it("gestor comercial leva 15% do split Mercatto e fica fora da NF (imposto só sobre o restante)", () => {
+    const c = calcularComissao({ vgv: 1_000_000, comissaoPercent: 5, splitPercent: 50, impostoPercent: 6, gestorPercent: 15 });
+    expect(c).toEqual({
+      comissaoTotal: 50_000,
+      splitMercatto: 25_000,
+      splitCorretor: 25_000,
+      gestor: 3_750,
+      baseNf: 21_250,
+      impostoNf: 1_275,
+      liquidoMercatto: 19_975,
+    });
+    // as partes fecham com a comissão total
+    expect(c.splitCorretor + c.gestor + c.impostoNf + c.liquidoMercatto).toBeCloseTo(c.comissaoTotal, 2);
   });
 
   it("arredonda ao centavo e as partes sempre somam a comissão", () => {

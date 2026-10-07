@@ -25,7 +25,9 @@ export function Vendas() {
   const vgv = soma((v) => v.vgv);
   const bruta = soma((v) => v.comissao_bruta);
   const imposto = soma((v) => v.imposto_nf);
-  const splitMercatto = total + imposto;
+  const gestor = soma((v) => v.gestor_valor);
+  // Split Mercatto = líquido + imposto + gestor (o gestor sai do split da Mercatto)
+  const splitMercatto = total + imposto + gestor;
   const splitCorretores = bruta - splitMercatto;
 
   return (
@@ -36,7 +38,15 @@ export function Vendas() {
       <Figuras>
         <Figura rotulo="VGV vendido" valor={vgv} formato="compacto" rodape={<span>{vendas.length} {vendas.length === 1 ? "venda" : "vendas"}</span>} />
         <Figura rotulo="Comissão total" valor={bruta} rodape={<span>corretores: {moeda(splitCorretores)}</span>} />
-        <Figura rotulo="Líquido Mercatto" valor={total} rodape={<span>após {moeda(imposto)} de imposto na NF</span>} />
+        <Figura
+          rotulo="Líquido Mercatto"
+          valor={total}
+          rodape={
+            <span>
+              {gestor > 0 && `gestor comercial ${moeda(gestor)} · `}imposto na NF {moeda(imposto)}
+            </span>
+          }
+        />
         <Figura rotulo="Ticket médio líquido" valor={vendas.length ? total / vendas.length : null} rodape={<span>por venda</span>} />
       </Figuras>
 
@@ -127,6 +137,7 @@ export function Vendas() {
                   <th>Corretor</th>
                   <th className="num">VGV</th>
                   <th className="num">Comissão total</th>
+                  <th className="num">Gestor</th>
                   <th className="num">Imposto NF</th>
                   <th className="num">Líquido Mercatto</th>
                 </tr>
@@ -141,6 +152,7 @@ export function Vendas() {
                     <td>{v.corretor ?? "—"}</td>
                     <td className="num">{v.vgv !== null ? moeda(v.vgv) : "—"}</td>
                     <td className="num muted">{v.comissao_bruta !== null ? moeda(v.comissao_bruta) : "—"}</td>
+                    <td className="num muted">{v.gestor_valor ? moeda(v.gestor_valor) : "—"}</td>
                     <td className="num muted">{v.imposto_nf !== null ? moeda(v.imposto_nf) : "—"}</td>
                     <td className="num">{moeda(v.valor)}</td>
                   </tr>
@@ -151,6 +163,7 @@ export function Vendas() {
                   <td colSpan={5}>Total</td>
                   <td className="num">{moeda(vgv)}</td>
                   <td className="num">{moeda(bruta)}</td>
+                  <td className="num">{moeda(gestor)}</td>
                   <td className="num">{moeda(imposto)}</td>
                   <td className="num">{moeda(total)}</td>
                 </tr>

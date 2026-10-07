@@ -66,22 +66,30 @@ export interface ParametrosComissao {
   comissaoPercent: number;
   /** Parte da comissão que é da Mercatto (%), ex.: 50 */
   splitPercent: number;
-  /** Imposto sobre a NF, sobre o split da Mercatto (%), ex.: 6 */
+  /** Imposto sobre a NF da Mercatto (%), ex.: 6 — incide sobre o split menos a parte do gestor */
   impostoPercent: number;
+  /** Parte do split da Mercatto que vai para o gestor comercial (%), ex.: 15. Ele emite a própria NF. */
+  gestorPercent?: number;
 }
 
 export interface Comissao {
   comissaoTotal: number;
   splitMercatto: number;
   splitCorretor: number;
+  /** Gestor comercial: % do split da Mercatto; ele emite a própria nota. */
+  gestor: number;
+  /** Base da NF da Mercatto: split − gestor. */
+  baseNf: number;
   impostoNf: number;
-  /** O que fica com a Mercatto: split − imposto. É o valor da receita. */
+  /** O que fica com a Mercatto: split − gestor − imposto. É o valor da receita. */
   liquidoMercatto: number;
 }
 
 /**
- * VGV → comissão total → split Mercatto / split corretor → imposto da NF
- * (só sobre o split da Mercatto) → líquido da Mercatto.
+ * VGV → comissão total → split Mercatto / split corretor → parte do gestor
+ * comercial (% do split Mercatto; ele emite a própria nota, então fica fora
+ * da NF da Mercatto) → imposto sobre a NF da Mercatto (split − gestor) →
+ * líquido da Mercatto.
  * Cada etapa é arredondada ao centavo; o corretor fica com a diferença,
  * para as partes sempre somarem a comissão total.
  */
@@ -89,8 +97,18 @@ export function calcularComissao(p: ParametrosComissao): Comissao {
   const comissaoTotal = centavos((p.vgv * p.comissaoPercent) / 100);
   const splitMercatto = centavos((comissaoTotal * p.splitPercent) / 100);
   const splitCorretor = centavos(comissaoTotal - splitMercatto);
-  const impostoNf = centavos((splitMercatto * p.impostoPercent) / 100);
-  return { comissaoTotal, splitMercatto, splitCorretor, impostoNf, liquidoMercatto: centavos(splitMercatto - impostoNf) };
+  const gestor = centavos((splitMercatto * (p.gestorPercent ?? 0)) / 100);
+  const baseNf = centavos(splitMercatto - gestor);
+  const impostoNf = centavos((baseNf * p.impostoPercent) / 100);
+  return {
+    comissaoTotal,
+    splitMercatto,
+    splitCorretor,
+    gestor,
+    baseNf,
+    impostoNf,
+    liquidoMercatto: centavos(baseNf - impostoNf),
+  };
 }
 
 // ─── Agregação mensal ───────────────────────────────────────────────────

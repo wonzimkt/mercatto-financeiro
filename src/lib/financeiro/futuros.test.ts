@@ -22,6 +22,8 @@ const base: LancamentoEntrada = {
   split_empresa_percent: null,
   imposto_nf_percent: null,
   imposto_nf: null,
+  gestor_percent: null,
+  gestor_valor: null,
   serie_id: null,
   recorrencia: null,
   parcela: null,

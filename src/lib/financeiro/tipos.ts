@@ -85,6 +85,9 @@ export interface Lancamento {
   split_empresa_percent: number | null;
   imposto_nf_percent: number | null;
   imposto_nf: number | null;
+  /** Gestor comercial: % do split da Mercatto e valor (fora da NF da Mercatto). */
+  gestor_percent: number | null;
+  gestor_valor: number | null;
   /** Séries (lançamentos que se repetem): mesmo serie_id em todas as ocorrências. */
   serie_id: string | null;
   recorrencia: Recorrencia | null;
@@ -106,8 +109,10 @@ export interface Configuracoes {
   comissao_percent: number;
   /** Parte da comissão total que é da Mercatto (%). */
   split_empresa_percent: number;
-  /** Imposto sobre a NF, aplicado ao split da Mercatto (%). */
+  /** Imposto sobre a NF da Mercatto (%), sobre o split menos a parte do gestor. */
   imposto_nf_percent: number;
+  /** Parte do split da Mercatto que vai para o gestor comercial (%). */
+  gestor_percent: number;
   custo_fixo_estimado: number;
   comissao_media_esperada: number;
   saldo_inicial_caixa: number;
@@ -118,6 +123,7 @@ export const CONFIG_PADRAO: Configuracoes = {
   comissao_percent: 5,
   split_empresa_percent: 50,
   imposto_nf_percent: 6,
+  gestor_percent: 15,
   custo_fixo_estimado: 0,
   comissao_media_esperada: 0,
   saldo_inicial_caixa: 0,
@@ -141,6 +147,8 @@ export function normalizarLancamento(l: Record<string, unknown>): Lancamento {
     split_empresa_percent: num(l.split_empresa_percent),
     imposto_nf_percent: num(l.imposto_nf_percent),
     imposto_nf: num(l.imposto_nf),
+    gestor_percent: num(l.gestor_percent),
+    gestor_valor: num(l.gestor_valor),
     origem_recurso: (l.origem_recurso as Origem | null) ?? null,
     item_custo: (l.item_custo as string | null) ?? null,
     serie_id: (l.serie_id as string | null) ?? null,
@@ -156,6 +164,8 @@ export function normalizarConfiguracoes(c: Record<string, unknown> | null): Conf
     comissao_percent: Number(c.comissao_percent ?? 5),
     split_empresa_percent: Number(c.split_empresa_percent ?? 50),
     imposto_nf_percent: Number(c.imposto_nf_percent ?? 6),
+    // Bancos antigos sem a coluna: sem gestor (não muda contas já feitas)
+    gestor_percent: Number(c.gestor_percent ?? 0),
     custo_fixo_estimado: Number(c.custo_fixo_estimado ?? 0),
     comissao_media_esperada: Number(c.comissao_media_esperada ?? 0),
     saldo_inicial_caixa: Number(c.saldo_inicial_caixa ?? 0),

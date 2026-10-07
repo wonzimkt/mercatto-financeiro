@@ -72,13 +72,13 @@ export function Exportar() {
     },
     {
       titulo: "Vendas do período",
-      descricao: "Data, cliente, empreendimento, cidade, corretor, VGV, comissão, splits, imposto da NF e líquido Mercatto.",
+      descricao: "Data, cliente, empreendimento, cidade, corretor, VGV, comissão, splits, gestor comercial, imposto da NF e líquido Mercatto.",
       gerar: () => [
         `mercatto-vendas-${sufixo}`,
         gerarCsv(
-          ["Data", "Cliente", "Empreendimento", "Cidade", "Corretor", "VGV", "Comissão total", "Split Mercatto", "Split corretor", "Imposto NF", "Líquido Mercatto"],
+          ["Data", "Cliente", "Empreendimento", "Cidade", "Corretor", "VGV", "Comissão total", "Split Mercatto", "Split corretor", "Gestor comercial", "Base NF Mercatto", "Imposto NF", "Líquido Mercatto"],
           vendasNoPeriodo(ls, periodo.inicio, periodo.fim).map((v) => {
-            const splitMercatto = v.valor + (v.imposto_nf ?? 0);
+            const splitMercatto = v.valor + (v.imposto_nf ?? 0) + (v.gestor_valor ?? 0);
             return [
               v.data,
               v.cliente,
@@ -89,6 +89,8 @@ export function Exportar() {
               v.comissao_bruta,
               splitMercatto,
               v.comissao_bruta !== null ? v.comissao_bruta - splitMercatto : null,
+              v.gestor_valor ?? 0,
+              splitMercatto - (v.gestor_valor ?? 0),
               v.imposto_nf,
               v.valor,
             ];

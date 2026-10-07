@@ -28,8 +28,9 @@ describe("propostas", () => {
     expect(diasEmNegociacao(p({ data: "2026-09-01", vgv: 1, status: "fechada", encerrada_em: "2026-09-11" }), "2026-09-24")).toBe(10);
   });
 
-  it("estima o líquido da Mercatto pelos percentuais padrão", () => {
-    expect(liquidoPotencial(1_000_000, CONFIG_PADRAO)).toBe(23_500);
+  it("estima o líquido da Mercatto pelos percentuais padrão (com gestor comercial)", () => {
+    expect(liquidoPotencial(1_000_000, CONFIG_PADRAO)).toBe(19_975);
+    expect(liquidoPotencial(1_000_000, { ...CONFIG_PADRAO, gestor_percent: 0 })).toBe(23_500);
   });
 
   it("resume o funil: só as abertas somam VGV; conversão dos últimos 12 meses", () => {
@@ -44,7 +45,7 @@ describe("propostas", () => {
     const r = resumoPropostas(ps, CONFIG_PADRAO, "2026-09-24");
     expect(r.emNegociacao).toBe(2);
     expect(r.vgvEmNegociacao).toBe(3_000_000);
-    expect(r.liquidoPotencial).toBe(70_500);
+    expect(r.liquidoPotencial).toBe(59_925); // 19.975 + 39.950
     expect(r.diasMedios).toBe(45); // (4 + 85) / 2 = 44,5 → 45
     expect(r.paradas).toBe(1);
     expect(r.fechadas12m).toBe(1);

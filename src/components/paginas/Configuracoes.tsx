@@ -23,9 +23,15 @@ const CAMPOS: { id: Campo; rotulo: string; ajuda: string; tipo: "moeda" | "pct";
     tipo: "pct",
   },
   {
+    id: "gestor_percent",
+    rotulo: "Gestor comercial (% do split Mercatto)",
+    ajuda: "Ex.: 15 = 15% dos 2,5% da Mercatto. Ele emite a própria nota, então essa parte fica fora do imposto da Mercatto. Use 0 se não houver gestor.",
+    tipo: "pct",
+  },
+  {
     id: "imposto_nf_percent",
-    rotulo: "Imposto sobre a NF (% do split Mercatto)",
-    ajuda: "Descontado só do split da Mercatto. Ex.: 6.",
+    rotulo: "Imposto sobre a NF da Mercatto (%)",
+    ajuda: "Incide sobre o split da Mercatto menos a parte do gestor comercial. Ex.: 6.",
     tipo: "pct",
   },
   {

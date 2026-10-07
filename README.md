@@ -46,6 +46,7 @@ supabase/
   migrations/…_propostas.sql      propostas em negociação (fora do financeiro)
   migrations/…_pagadores_links.sql pagadores editáveis (aportes) e links de visualização
   migrations/…_series.sql          séries de lançamentos (fixo mensal / parcelado)
+  migrations/…_gestor_comercial.sql parte do gestor comercial no split da Mercatto
   functions/convidar-usuario/     Edge Function de convite (única que usa a service role)
   templates/                      e-mails de convite e de redefinição de senha
 src/
@@ -192,10 +193,12 @@ Serve para ver o visual e testar as telas sem tocar no banco. O build publicado 
 Todas em `src/lib/financeiro/calculos.ts`, cobertas por testes.
 
 - **Valor** é sempre positivo; o tipo (receita/despesa) dá o sinal.
-- **Comissão de Venda** é lançada pelo **VGV**. A calculadora faz: comissão total (5% do VGV) → split Mercatto
-  (50% da comissão = 2,5% do VGV) e split corretor (o restante) → imposto sobre a NF (6%, só sobre o split da
-  Mercatto) → **líquido Mercatto**, que é o `valor` da receita. Os percentuais padrão ficam em Configurações e podem
-  ser ajustados venda a venda; tudo fica gravado (`vgv`, `comissao_bruta`, `imposto_nf`…).
+- **Comissão de Venda** é lançada pelo **VGV**. A calculadora faz: comissão total (5% do VGV) → split corretor
+  (50% da comissão = 2,5% do VGV) e split Mercatto (2,5% do VGV) → **gestor comercial** (15% do split Mercatto; ele
+  emite a própria nota, então essa parte fica fora da NF da Mercatto) → imposto sobre a NF da Mercatto (6% de
+  split − gestor) → **líquido Mercatto**, que é o `valor` da receita. Ex.: VGV R$ 1 mi → split R$ 25 mil − gestor
+  R$ 3.750 = base R$ 21.250 − imposto R$ 1.275 = líquido R$ 19.975. Os percentuais padrão ficam em Configurações e
+  podem ser ajustados venda a venda; tudo fica gravado (`vgv`, `comissao_bruta`, `gestor_valor`, `imposto_nf`…).
 - **Quem pagou** só existe em despesas; toda receita entra no caixa da empresa. A lista de pagadores fica na tabela
   `pagadores` e é editável em Configurações (começa com Caixa, Cris, Leandro, Geyson e Valor Marketing).
 - **Caixa** = saldo inicial + receitas − despesas pagas pelo **Caixa**. Despesas pagas por qualquer outro pagador são

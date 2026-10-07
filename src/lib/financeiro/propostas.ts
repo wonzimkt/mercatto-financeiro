@@ -25,6 +25,7 @@ export function liquidoPotencial(vgv: number, cfg: Configuracoes): number {
     comissaoPercent: cfg.comissao_percent,
     splitPercent: cfg.split_empresa_percent,
     impostoPercent: cfg.imposto_nf_percent,
+    gestorPercent: cfg.gestor_percent,
   }).liquidoMercatto;
 }
 
